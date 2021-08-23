@@ -1,6 +1,7 @@
 package com.example.walkingalarm;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,6 +12,9 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.gson.Gson;
+
+import java.util.ArrayList;
 import java.util.List;
 
 public class AlarmListAdapter extends
@@ -18,8 +22,13 @@ public class AlarmListAdapter extends
 
     private List<AlarmItem> alarmItems;
 
-    public AlarmListAdapter(List<AlarmItem> alarmItems) {
-        this.alarmItems = alarmItems;
+    private SharedPreferences prefs;
+
+    public AlarmListAdapter(SharedPreferences prefs) {
+        this.prefs = prefs;
+        this.alarmItems = getAlarmItems();
+
+
     }
     @NonNull
     @Override
@@ -48,6 +57,8 @@ public class AlarmListAdapter extends
             alarmItem.setActive(!alarmItem.isActive());
             notifyItemChanged(position);
         });
+
+        this.saveAlarmItems();
     }
 
 
@@ -56,10 +67,45 @@ public class AlarmListAdapter extends
         return alarmItems.size();
     }
 
+    private void saveAlarmItems(){
+        SharedPreferences.Editor prefsEditor = prefs.edit();
+        Gson gson = new Gson();
+        int i = 0;
+        for (AlarmItem item : alarmItems) {
+            prefsEditor.putString(String.valueOf(i),gson.toJson(item));
+            i++;
+        }
+        prefsEditor.apply();
+    }
+
+    private List<AlarmItem> getAlarmItems(){
+        Gson gson = new Gson();
+        int i = 0;
+        List<AlarmItem> items = new ArrayList<>();
+        String jsonItem = prefs.getString(String.valueOf(i), "");
+        while(!jsonItem.isEmpty()){
+            AlarmItem item = gson.fromJson(jsonItem, AlarmItem.class);
+            items.add(item);
+            i++;
+            jsonItem = prefs.getString(String.valueOf(i), "");
+        }
+
+        return items;
+
+    }
+
+    public void addAlarmItem(AlarmItem item){
+        alarmItems.add(item);
+        // new item is expanded for day of week selection
+        alarmItems.get(alarmItems.size() - 1).setExpanded(true);
+        notifyItemChanged(alarmItems.size());
+    }
+
 
     public class AlarmViewHolder extends RecyclerView.ViewHolder {
 
         public TextView alarmNameTextView;
+        public TextView alarmNameSubTextView;
         public SwitchCompat alarmActiveSwitch;
         public LinearLayout subItem;
 
@@ -71,12 +117,15 @@ public class AlarmListAdapter extends
             alarmNameTextView = (TextView) itemView.findViewById(R.id.alarm_name);
             alarmActiveSwitch = (SwitchCompat) itemView.findViewById(R.id.alarm_active_switch);
             subItem = (LinearLayout) itemView.findViewById(R.id.sub_alarm_info);
+            alarmNameSubTextView = (TextView) itemView.findViewById(R.id.alarm_sub_text);
 
         }
 
         private void bind(AlarmItem alarmItem){
 
             alarmNameTextView.setText(alarmItem.getAlarmName());
+
+            alarmNameSubTextView.setText(alarmItem.alarmDateToString());
 
             boolean expanded = alarmItem.isExpanded();
             subItem.setVisibility(expanded ? View.VISIBLE : View.GONE);

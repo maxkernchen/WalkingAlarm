@@ -1,12 +1,13 @@
 package com.example.walkingalarm;
 
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class AlarmItem {
 
     private String alarmName;
-
-
 
     private Date alarmDate;
     private boolean expanded;
@@ -16,11 +17,24 @@ public class AlarmItem {
         this.alarmName = alarmName;
         this.expanded = false;
         this.active = true;
-        this.alarmDate =  new Date();
+        this.alarmDate =  convertToDate(alarmName);
+    }
+
+    private Date convertToDate(String alarmName){
+        Date converted = new Date();
+        final SimpleDateFormat sdf = new SimpleDateFormat("H:mm");
+        try {
+             converted = sdf.parse(alarmName);
+        } catch (ParseException e) {
+            //TODO how to handle this, dont think this exception will ever happen.
+            e.printStackTrace();
+        }
+
+        return converted;
     }
 
     public String getAlarmName(){
-        return this.alarmName;
+        return new SimpleDateFormat("K:mm a").format(alarmDate).toString();
     }
 
     public void setExpanded(boolean setExpansion){

@@ -1,6 +1,8 @@
 package com.example.walkingalarm;
 
 import android.app.TimePickerDialog;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import com.google.android.material.snackbar.Snackbar;
@@ -41,12 +43,11 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(binding.toolbar);
 
 
-
-
         RecyclerView rvAlarmListView = (RecyclerView) findViewById(R.id.alarmListView);
-        List<AlarmItem> alarmList = new ArrayList<>();
-        alarmList.add(new AlarmItem("Test Alarm"));
-        AlarmListAdapter alarmListAdapter = new AlarmListAdapter(alarmList);
+
+        AlarmListAdapter alarmListAdapter = new AlarmListAdapter(
+                this.getPreferences(Context.MODE_PRIVATE));
+
         rvAlarmListView.setAdapter(alarmListAdapter);
         rvAlarmListView.setLayoutManager(new LinearLayoutManager(this));
         // time picker dialog
@@ -57,12 +58,13 @@ public class MainActivity extends AppCompatActivity {
                 new TimePickerDialog.OnTimeSetListener() {
                     @Override
                     public void onTimeSet(TimePicker tp, int sHour, int sMinute) {
-                        alarmList.add(new AlarmItem(sHour + "|" + sMinute));
-                        alarmListAdapter.notifyItemChanged(alarmList.size());
-                        alarmList.get(alarmList.size() - 1).setExpanded(true);
+                        alarmListAdapter.addAlarmItem(
+                                new AlarmItem(sHour + ":" + sMinute));
+
                     }
                 }, hour, minutes, false);
-            picker.setCanceledOnTouchOutside(false);
+
+        picker.setCanceledOnTouchOutside(false);
         binding.fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -94,6 +96,7 @@ public class MainActivity extends AppCompatActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
 
 
 }
