@@ -62,7 +62,7 @@
             android:text="@string/place_holder_alarm_name" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/alarm_delete_button2"
+            android:id="@+id/alarm_delete_button"
             android:layout_width="0dp"
             android:layout_weight="2"
             android:layout_height="match_parent"

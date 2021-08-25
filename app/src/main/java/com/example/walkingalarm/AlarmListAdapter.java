@@ -7,11 +7,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.gson.Gson;
 
 import java.util.ArrayList;
@@ -39,6 +41,27 @@ public class AlarmListAdapter extends
         View alarmListView = inflater.inflate(R.layout.alarm_list, parent, false);
 
         AlarmViewHolder alarmViewHolder = new AlarmViewHolder(alarmListView);
+
+        MaterialButton btn = (MaterialButton) alarmViewHolder.
+                itemView.findViewById(R.id.alarm_delete_button);
+        btn.setOnClickListener(l -> {
+                System.out.println(String.valueOf(alarmViewHolder.getAdapterPosition()));
+                deleteAlarmItem(alarmViewHolder.getAdapterPosition());
+        });
+
+        alarmViewHolder.itemView.setOnClickListener(l -> {
+            int position = alarmViewHolder.getAdapterPosition();
+            AlarmItem alarmItem = alarmItems.get(position);
+            alarmItem.setExpanded(!alarmItem.isExpanded());
+            notifyItemChanged(position);
+        });
+        alarmViewHolder.alarmActiveSwitch.setOnClickListener(l -> {
+            int position = alarmViewHolder.getAdapterPosition();
+            AlarmItem alarmItem = alarmItems.get(position);
+            alarmItem.setActive(!alarmItem.isActive());
+            notifyItemChanged(position);
+        });
+
         return alarmViewHolder;
     }
 
@@ -47,16 +70,6 @@ public class AlarmListAdapter extends
         AlarmItem alarmItem = alarmItems.get(position);
 
         holder.bind(alarmItem);
-
-
-        holder.itemView.setOnClickListener(l -> {
-            alarmItem.setExpanded(!alarmItem.isExpanded());
-            notifyItemChanged(position);
-        });
-        holder.alarmActiveSwitch.setOnClickListener(l -> {
-            alarmItem.setActive(!alarmItem.isActive());
-            notifyItemChanged(position);
-        });
 
         this.saveAlarmItems();
     }
@@ -72,7 +85,7 @@ public class AlarmListAdapter extends
         Gson gson = new Gson();
         int i = 0;
         for (AlarmItem item : alarmItems) {
-            prefsEditor.putString(String.valueOf(i),gson.toJson(item));
+            prefsEditor.putString(String.valueOf(i), gson.toJson(item));
             i++;
         }
         prefsEditor.apply();
@@ -99,6 +112,17 @@ public class AlarmListAdapter extends
         // new item is expanded for day of week selection
         alarmItems.get(alarmItems.size() - 1).setExpanded(true);
         notifyItemChanged(alarmItems.size());
+    }
+
+    public void deleteAlarmItem(int index){
+        SharedPreferences.Editor prefsEditor = prefs.edit();
+        prefsEditor.clear();
+        prefsEditor.apply();
+        alarmItems.remove(index);
+        notifyItemRemoved(index);
+        //resave to align items.
+        saveAlarmItems();
+
     }
 
 
