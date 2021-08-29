@@ -3,7 +3,13 @@ package com.example.walkingalarm;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
 
 public class AlarmItem {
 
@@ -12,12 +18,16 @@ public class AlarmItem {
     private Date alarmDate;
     private boolean expanded;
     private boolean active;
+    private HashSet<DayOfWeek> daysOfWeek;
 
     public AlarmItem(String alarmName){
         this.alarmName = alarmName;
         this.expanded = false;
         this.active = true;
         this.alarmDate =  convertToDate(alarmName);
+        this.daysOfWeek = new HashSet<>();
+        // add current day of week
+        daysOfWeek.add(LocalDate.now().getDayOfWeek());
     }
 
     private Date convertToDate(String alarmName){
@@ -59,5 +69,15 @@ public class AlarmItem {
 
     public String alarmDateToString() {
         return alarmDate.toString();
+    }
+
+    public void removeDayOfWeek(DayOfWeek toRemove){
+        daysOfWeek.remove(toRemove);
+    }
+    public void addDayOfWeek(DayOfWeek toAdd){
+        daysOfWeek.add(toAdd);
+    }
+    public HashSet<DayOfWeek> getDaysOfWeek(){
+        return daysOfWeek;
     }
 }

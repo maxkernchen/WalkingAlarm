@@ -35,41 +35,124 @@
             android:layout_weight="2"
             android:scaleX="1.3"
             android:scaleY="1.3"
-
-
-
             />
-
-
     </LinearLayout>
     <LinearLayout
         android:id="@+id/sub_alarm_info"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:weightSum="10">
+
+    <LinearLayout
         android:orientation="horizontal"
         android:weightSum="10"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         >
 
-        <TextView
-            android:id="@+id/alarm_sub_text"
+        <ToggleButton
+            android:layout_weight="1.2"
             android:layout_width="0dp"
-            android:layout_weight="8"
             android:layout_height="match_parent"
-            android:layout_marginStart="5dp"
-            android:textColor="@color/black"
-            android:textSize="30sp"
-            android:textStyle="bold"
-            android:text="@string/place_holder_alarm_name" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/alarm_delete_button"
-            android:layout_width="0dp"
-            android:layout_weight="2"
-            android:layout_height="match_parent"
-            android:background="@color/gray"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            app:icon="@android:drawable/ic_menu_delete"
-            app:iconTint="@color/red"
+            android:background="@drawable/togglebutton_selector"
+            android:textOn="@string/sunday"
+            android:textOff="@string/sunday"
+            android:checked="false"
+            android:saveEnabled="false"
+            android:layout_marginStart="@dimen/toggle_margin"
+            android:id="@+id/sunday_toggle"
             />
+        <ToggleButton
+            android:layout_weight="1.2"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/togglebutton_selector"
+            android:textOn="@string/monday"
+            android:textOff="@string/monday"
+            android:layout_marginStart="@dimen/toggle_margin"
+            android:checked="false"
+            android:saveEnabled="false"
+            android:id="@+id/monday_toggle"
+            />
+        <ToggleButton
+            android:layout_weight="1.2"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/togglebutton_selector"
+            android:textOn="@string/tuesday"
+            android:textOff="@string/tuesday"
+            android:layout_marginStart="@dimen/toggle_margin"
+            android:checked="false"
+            android:saveEnabled="false"
+            android:id="@+id/tuesday_toggle"
+            />
+        <ToggleButton
+            android:layout_weight="1.2"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/togglebutton_selector"
+            android:textOn="@string/wednesday"
+            android:textOff="@string/wednesday"
+            android:layout_marginStart="@dimen/toggle_margin"
+            android:checked="false"
+            android:saveEnabled="false"
+            android:id="@+id/wednesday_toggle"
+            />
+        <ToggleButton
+            android:layout_weight="1.2"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/togglebutton_selector"
+            android:textOn="@string/thursday"
+            android:textOff="@string/thursday"
+            android:layout_marginStart="@dimen/toggle_margin"
+            android:checked="false"
+            android:saveEnabled="false"
+            android:id="@+id/thursday_toggle"
+            />
+        <ToggleButton
+            android:layout_weight="1.2"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/togglebutton_selector"
+            android:textOn="@string/friday"
+            android:textOff="@string/friday"
+            android:layout_marginStart="@dimen/toggle_margin"
+            android:checked="false"
+            android:saveEnabled="false"
+            android:id="@+id/friday_toggle"
+            />
+        <ToggleButton
+            android:layout_weight="1.2"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/togglebutton_selector"
+            android:textOn="@string/saturday"
+            android:textOff="@string/saturday"
+            android:layout_marginStart="@dimen/toggle_margin"
+            android:checked="false"
+            android:saveEnabled="false"
+            android:id="@+id/saturday_toggle"
+            />
+
     </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:weightSum="10"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            >
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/alarm_delete_button"
+                android:layout_width="0dp"
+                android:layout_weight="1.6"
+                android:layout_height="match_parent"
+                android:background="@color/gray"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                app:icon="@android:drawable/ic_menu_delete"
+                app:iconTint="@color/red"
+                />
+        </LinearLayout>
+  </LinearLayout>
 </LinearLayout>

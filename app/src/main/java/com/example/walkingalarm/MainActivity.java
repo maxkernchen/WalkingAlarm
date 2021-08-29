@@ -46,6 +46,8 @@ public class MainActivity extends AppCompatActivity {
 
 
         RecyclerView rvAlarmListView = (RecyclerView) findViewById(R.id.alarmListView);
+        // disable animations on changes, else it will flash toggle buttons for every update.
+        rvAlarmListView.getItemAnimator().setChangeDuration(0);
 
         AlarmListAdapter alarmListAdapter = new AlarmListAdapter(
                 this.getPreferences(Context.MODE_PRIVATE));

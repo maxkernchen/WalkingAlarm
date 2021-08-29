@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.SwitchCompat;
@@ -16,7 +17,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.button.MaterialButton;
 import com.google.gson.Gson;
 
+import java.time.DayOfWeek;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 
 public class AlarmListAdapter extends
@@ -26,10 +30,10 @@ public class AlarmListAdapter extends
 
     private SharedPreferences prefs;
 
+
     public AlarmListAdapter(SharedPreferences prefs) {
         this.prefs = prefs;
         this.alarmItems = getAlarmItems();
-
 
     }
     @NonNull
@@ -39,28 +43,7 @@ public class AlarmListAdapter extends
         LayoutInflater inflater = LayoutInflater.from(context);
 
         View alarmListView = inflater.inflate(R.layout.alarm_list, parent, false);
-
         AlarmViewHolder alarmViewHolder = new AlarmViewHolder(alarmListView);
-
-        MaterialButton btn = (MaterialButton) alarmViewHolder.
-                itemView.findViewById(R.id.alarm_delete_button);
-        btn.setOnClickListener(l -> {
-                System.out.println(String.valueOf(alarmViewHolder.getAdapterPosition()));
-                deleteAlarmItem(alarmViewHolder.getAdapterPosition());
-        });
-
-        alarmViewHolder.itemView.setOnClickListener(l -> {
-            int position = alarmViewHolder.getAdapterPosition();
-            AlarmItem alarmItem = alarmItems.get(position);
-            alarmItem.setExpanded(!alarmItem.isExpanded());
-            notifyItemChanged(position);
-        });
-        alarmViewHolder.alarmActiveSwitch.setOnClickListener(l -> {
-            int position = alarmViewHolder.getAdapterPosition();
-            AlarmItem alarmItem = alarmItems.get(position);
-            alarmItem.setActive(!alarmItem.isActive());
-            notifyItemChanged(position);
-        });
 
         return alarmViewHolder;
     }
@@ -68,11 +51,11 @@ public class AlarmListAdapter extends
     @Override
     public void onBindViewHolder(@NonNull AlarmViewHolder holder, int position) {
         AlarmItem alarmItem = alarmItems.get(position);
-
         holder.bind(alarmItem);
 
         this.saveAlarmItems();
     }
+
 
 
     @Override
@@ -126,22 +109,26 @@ public class AlarmListAdapter extends
     }
 
 
+
     public class AlarmViewHolder extends RecyclerView.ViewHolder {
 
-        public TextView alarmNameTextView;
-        public TextView alarmNameSubTextView;
-        public SwitchCompat alarmActiveSwitch;
-        public LinearLayout subItem;
+        private TextView alarmNameTextView;
+        private TextView alarmNameSubTextView;
+        private SwitchCompat alarmActiveSwitch;
+        private LinearLayout subItem;
+        private ArrayList<ToggleButton> toggleButtons;
+        private View itemView;
 
 
         public AlarmViewHolder(View itemView) {
 
             super(itemView);
-
+            this.itemView = itemView;
             alarmNameTextView = (TextView) itemView.findViewById(R.id.alarm_name);
             alarmActiveSwitch = (SwitchCompat) itemView.findViewById(R.id.alarm_active_switch);
             subItem = (LinearLayout) itemView.findViewById(R.id.sub_alarm_info);
-            alarmNameSubTextView = (TextView) itemView.findViewById(R.id.alarm_sub_text);
+            toggleButtons = this.getToggleDayOfWeeks(itemView);
+            this.setUpListeners(this);
 
         }
 
@@ -149,16 +136,73 @@ public class AlarmListAdapter extends
 
             alarmNameTextView.setText(alarmItem.getAlarmName());
 
-            alarmNameSubTextView.setText(alarmItem.alarmDateToString());
 
             boolean expanded = alarmItem.isExpanded();
             subItem.setVisibility(expanded ? View.VISIBLE : View.GONE);
             boolean active = alarmItem.isActive();
             alarmActiveSwitch.setChecked(active);
+            bindDayOfWeekToggle(alarmItem);
 
 
+        }
 
+        private ArrayList<ToggleButton> getToggleDayOfWeeks(View itemview){
+            ArrayList<ToggleButton> toggleButtons = new ArrayList<>();
+            // these are added in same order as java 1.8 DayOfWeek enum starting Monday
+            // so we can just directly get the correct toggle.
+            toggleButtons.add(itemview.findViewById(R.id.monday_toggle));
+            toggleButtons.add(itemview.findViewById(R.id.tuesday_toggle));
+            toggleButtons.add(itemview.findViewById(R.id.wednesday_toggle));
+            toggleButtons.add(itemview.findViewById(R.id.thursday_toggle));
+            toggleButtons.add(itemview.findViewById(R.id.friday_toggle));
+            toggleButtons.add(itemview.findViewById(R.id.saturday_toggle));
+            toggleButtons.add(itemview.findViewById(R.id.sunday_toggle));
 
+            return toggleButtons;
+        }
+
+        private void bindDayOfWeekToggle(AlarmItem alarmItem) {
+            HashSet<DayOfWeek> daysOfWeekHashSet = alarmItem.getDaysOfWeek();
+            for (int i = 0; i < toggleButtons.size();i++) {
+                toggleButtons.get(i).setChecked(daysOfWeekHashSet.contains(DayOfWeek.of(i + 1)));
+            }
+        }
+        private void setUpListeners(AlarmViewHolder alarmViewHolder){
+            MaterialButton btn = (MaterialButton) alarmViewHolder.
+                    itemView.findViewById(R.id.alarm_delete_button);
+            btn.setOnClickListener(l -> {
+                System.out.println(String.valueOf(alarmViewHolder.getAdapterPosition()));
+                deleteAlarmItem(alarmViewHolder.getAdapterPosition());
+            });
+
+            alarmViewHolder.itemView.setOnClickListener(l -> {
+                int position = alarmViewHolder.getAdapterPosition();
+                AlarmItem alarmItem = alarmItems.get(position);
+                alarmItem.setExpanded(!alarmItem.isExpanded());
+                notifyItemChanged(position);
+            });
+            alarmViewHolder.alarmActiveSwitch.setOnClickListener(l -> {
+                int position = alarmViewHolder.getAdapterPosition();
+                AlarmItem alarmItem = alarmItems.get(position);
+                alarmItem.setActive(!alarmItem.isActive());
+                notifyItemChanged(position);
+            });
+            int i = 1;
+            for (ToggleButton toggleButton : toggleButtons){
+                final int finalIndex = i;
+                toggleButton.setOnClickListener(l -> {
+                    int position = alarmViewHolder.getAdapterPosition();
+                    AlarmItem alarmItem = alarmItems.get(position);
+                    if(toggleButton.isChecked()){
+                        alarmItem.addDayOfWeek(DayOfWeek.of(finalIndex));
+                    }
+                    else{
+                        alarmItem.removeDayOfWeek(DayOfWeek.of(finalIndex));
+                    }
+                    notifyItemChanged(position);
+                });
+                i++;
+            }
         }
     }
 }
