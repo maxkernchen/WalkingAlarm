@@ -40,7 +40,7 @@ public class AlarmListAdapter extends
 
     public AlarmListAdapter(SharedPreferences prefs) {
         this.prefs = prefs;
-        this.alarmItems = getAlarmItems(prefs);
+        this.alarmItems = getAlarmItemsStatic(prefs);
 
     }
     @NonNull
@@ -81,7 +81,18 @@ public class AlarmListAdapter extends
         prefsEditor.apply();
     }
 
-    protected static List<AlarmItem> getAlarmItems(SharedPreferences prefs){
+    private static void  saveAlarmItemsStatic(List<AlarmItem> itemsStatic, SharedPreferences prefs){
+        SharedPreferences.Editor prefsEditor = prefs.edit();
+        Gson gson = new Gson();
+        int i = 0;
+        for (AlarmItem item : itemsStatic) {
+            prefsEditor.putString(String.valueOf(i), gson.toJson(item));
+            i++;
+        }
+        prefsEditor.apply();
+    }
+
+    protected static List<AlarmItem> getAlarmItemsStatic(SharedPreferences prefs){
         Gson gson = new Gson();
         int i = 0;
         List<AlarmItem> items = new ArrayList<>();
@@ -130,11 +141,36 @@ public class AlarmListAdapter extends
             }
             else if(alarmTime && !item.isAlarmTriggered() && item.isActive()){
                 item.setAlarmTriggered(true);
+
                 return true;
             }
             else if(!alarmTime && item.isAlarmTriggered()){
                 item.setAlarmTriggered(false);
             }
+        }
+        return false;
+    }
+
+    public static boolean triggerAlarmStatic(List<AlarmItem> staticItems, SharedPreferences prefs){
+        Calendar now = Calendar.getInstance();
+        AlarmItem activeAlarmItem = null;
+        boolean alarmTime = false;
+        for(AlarmItem item : staticItems){
+            Calendar tempCal = item.getAlarmDate();
+
+            alarmTime = (tempCal.get(Calendar.HOUR_OF_DAY) == now.get(Calendar.HOUR_OF_DAY)
+                    && tempCal.get(Calendar.MINUTE) == now.get(Calendar.MINUTE));
+
+          if(alarmTime && !item.isAlarmTriggered() && item.isActive()){
+                item.setAlarmTriggered(true);
+                AlarmListAdapter.saveAlarmItemsStatic(staticItems, prefs);
+                return true;
+            }
+            else if(!alarmTime && item.isAlarmTriggered()){
+                item.setAlarmTriggered(false);
+                AlarmListAdapter.saveAlarmItemsStatic(staticItems, prefs);
+
+          }
         }
         return false;
     }

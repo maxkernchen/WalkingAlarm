@@ -62,14 +62,15 @@ public class AlarmService extends Service {
                 public void run() {
 
                     while(true){
-                        Log.d("AlarmService", LocalDateTime.now().toString());
 
-                        boolean isAlarm = MainActivity.getAlarmListAdapterInstance().triggerAlarm();
+                        List<AlarmItem> items = AlarmListAdapter.getAlarmItemsStatic(prefs);
+                        boolean isAlarm = AlarmListAdapter.triggerAlarmStatic(items, prefs);
+
                         if(isAlarm){
-                            Log.d("AlarmService", "ALARM TRIGGERED!");
+                            Log.i("AlarmService", "ALARM TRIGGERED!");
 
                         }
-                        Log.d("AlarmService", LocalDateTime.now().toString());
+                        Log.i("AlarmService", LocalDateTime.now().toString());
                         try {
                             Thread.sleep(3000);
                         } catch (InterruptedException e) {
