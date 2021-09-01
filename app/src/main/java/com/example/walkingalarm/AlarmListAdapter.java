@@ -2,6 +2,7 @@ package com.example.walkingalarm;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.icu.util.TimeZone;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,8 +18,14 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.button.MaterialButton;
 import com.google.gson.Gson;
 
+import java.sql.Time;
 import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -33,7 +40,7 @@ public class AlarmListAdapter extends
 
     public AlarmListAdapter(SharedPreferences prefs) {
         this.prefs = prefs;
-        this.alarmItems = getAlarmItems();
+        this.alarmItems = getAlarmItems(prefs);
 
     }
     @NonNull
@@ -74,7 +81,7 @@ public class AlarmListAdapter extends
         prefsEditor.apply();
     }
 
-    private List<AlarmItem> getAlarmItems(){
+    protected static List<AlarmItem> getAlarmItems(SharedPreferences prefs){
         Gson gson = new Gson();
         int i = 0;
         List<AlarmItem> items = new ArrayList<>();
@@ -106,6 +113,30 @@ public class AlarmListAdapter extends
         //resave to align items.
         saveAlarmItems();
 
+    }
+
+    public boolean triggerAlarm(){
+        Calendar now = Calendar.getInstance();
+        AlarmItem activeAlarmItem = null;
+        boolean alarmTime = false;
+        for(AlarmItem item : alarmItems){
+            Calendar tempCal = item.getAlarmDate();
+
+            alarmTime = (tempCal.get(Calendar.HOUR_OF_DAY) == now.get(Calendar.HOUR_OF_DAY)
+                    && tempCal.get(Calendar.MINUTE) == now.get(Calendar.MINUTE));
+
+            if(alarmTime && item.isAlarmTriggered()) {
+                continue;
+            }
+            else if(alarmTime && !item.isAlarmTriggered() && item.isActive()){
+                item.setAlarmTriggered(true);
+                return true;
+            }
+            else if(!alarmTime && item.isAlarmTriggered()){
+                item.setAlarmTriggered(false);
+            }
+        }
+        return false;
     }
 
 
@@ -163,7 +194,7 @@ public class AlarmListAdapter extends
 
         private void bindDayOfWeekToggle(AlarmItem alarmItem) {
             HashSet<DayOfWeek> daysOfWeekHashSet = alarmItem.getDaysOfWeek();
-            for (int i = 0; i < toggleButtons.size();i++) {
+            for (int i = 0; i < toggleButtons.size(); i++) {
                 toggleButtons.get(i).setChecked(daysOfWeekHashSet.contains(DayOfWeek.of(i + 1)));
             }
         }

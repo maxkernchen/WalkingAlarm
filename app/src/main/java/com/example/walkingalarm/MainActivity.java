@@ -2,7 +2,9 @@ package com.example.walkingalarm;
 
 import android.app.TimePickerDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 
 import com.google.android.material.button.MaterialButton;
@@ -36,6 +38,8 @@ public class MainActivity extends AppCompatActivity {
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
 
+    private static AlarmListAdapter singletonAlarmListAdapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -44,40 +48,51 @@ public class MainActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
         setSupportActionBar(binding.toolbar);
 
+        SharedPreferences prefs = this.getSharedPreferences(getString(R.string.shared_prefs_key),
+                Context.MODE_PRIVATE);
+
 
         RecyclerView rvAlarmListView = (RecyclerView) findViewById(R.id.alarmListView);
         // disable animations on changes, else it will flash toggle buttons for every update.
         rvAlarmListView.getItemAnimator().setChangeDuration(0);
 
         AlarmListAdapter alarmListAdapter = new AlarmListAdapter(
-                this.getPreferences(Context.MODE_PRIVATE));
+                prefs);
 
         rvAlarmListView.setAdapter(alarmListAdapter);
         rvAlarmListView.setLayoutManager(new LinearLayoutManager(this));
         // time picker dialog
-        final Calendar cldr = Calendar.getInstance();
-        int hour = cldr.get(Calendar.HOUR);
-        int minutes = cldr.get(Calendar.MINUTE);
-        final TimePickerDialog picker = new TimePickerDialog(MainActivity.this,
-                new TimePickerDialog.OnTimeSetListener() {
-                    @Override
-                    public void onTimeSet(TimePicker tp, int sHour, int sMinute) {
-                        alarmListAdapter.addAlarmItem(
-                                new AlarmItem(sHour + ":" + sMinute));
 
-                    }
-                }, hour, minutes, false);
-
-        picker.setCanceledOnTouchOutside(false);
         binding.fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                final Calendar cldr = Calendar.getInstance();
+                int hour = cldr.get(Calendar.HOUR);
+                int minutes = cldr.get(Calendar.MINUTE);
+                final TimePickerDialog picker = new TimePickerDialog(MainActivity.this,
+                        new TimePickerDialog.OnTimeSetListener() {
+                            @Override
+                            public void onTimeSet(TimePicker tp, int sHour, int sMinute) {
+                                alarmListAdapter.addAlarmItem(
+                                        new AlarmItem(sHour, sMinute));
+
+                            }
+                            //TODO: make this 24 hour based on system prefs
+                        }, hour, minutes, false);
+                picker.setCanceledOnTouchOutside(false);
                 picker.show();
 
             }
         });
 
+        this.singletonAlarmListAdapter = alarmListAdapter;
+        Intent myService = new Intent(this, AlarmService.class);
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+           startForegroundService(myService);
+        } else {
+            startService(myService);
+        }
 
     }
 
@@ -101,6 +116,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+
+    public static AlarmListAdapter getAlarmListAdapterInstance(){
+        return singletonAlarmListAdapter;
     }
 
 
