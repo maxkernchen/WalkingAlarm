@@ -151,7 +151,7 @@ public class AlarmListAdapter extends
         return false;
     }
 
-    public static boolean triggerAlarmStatic(List<AlarmItem> staticItems, SharedPreferences prefs){
+    public static AlarmItem triggerAlarmStatic(List<AlarmItem> staticItems, SharedPreferences prefs){
         Calendar now = Calendar.getInstance();
         AlarmItem activeAlarmItem = null;
         boolean alarmTime = false;
@@ -164,7 +164,7 @@ public class AlarmListAdapter extends
           if(alarmTime && !item.isAlarmTriggered() && item.isActive()){
                 item.setAlarmTriggered(true);
                 AlarmListAdapter.saveAlarmItemsStatic(staticItems, prefs);
-                return true;
+                return item;
             }
             else if(!alarmTime && item.isAlarmTriggered()){
                 item.setAlarmTriggered(false);
@@ -172,8 +172,11 @@ public class AlarmListAdapter extends
 
           }
         }
-        return false;
+        return null;
     }
+
+
+
 
 
 

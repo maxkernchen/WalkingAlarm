@@ -10,15 +10,23 @@ import android.widget.Toast;
 public class AlarmReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-        Toast.makeText(context, "Received Reboot event", Toast.LENGTH_LONG).show();
-        Log.i("AlarmReciever", "Boot completed");
+        Log.i("AlarmReciever", "Received Broadcast for action: " + intent.getAction());
+        if(intent.getAction().equals(Intent.ACTION_BOOT_COMPLETED)) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Log.i("AlarmReciever", "Started Service");
+                context.startForegroundService(new Intent(context, AlarmService.class));
+            } else {
+                context.startService(new Intent(context, AlarmService.class));
+            }
+        }
+        else if(intent.getAction().equals(AlarmFullScreen.FULL_SCREEN_ACTION_ALARM)){
+            Log.i("AlarmReciever", "Started FullScreenAlarm");
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Log.i("AlarmReciever", "Started Service");
+            AlarmFullScreen.CreateFullScreenNotification(context, (String)
+                    intent.getExtras().get("AlarmTime"));
+        }
+        else if(intent.getAction().equals(AlarmFullScreen.WALK_ACTION)){
 
-            context.startForegroundService(new Intent(context, AlarmService.class));
-        } else {
-            context.startService(new Intent(context, AlarmService.class));
         }
     }
 }
