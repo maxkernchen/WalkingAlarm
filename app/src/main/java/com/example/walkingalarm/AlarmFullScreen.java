@@ -7,19 +7,20 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowManager;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.walkingalarm.databinding.ActivityAlarmFullScreenBinding;
 
@@ -31,10 +32,18 @@ public class AlarmFullScreen extends AppCompatActivity {
 
     protected static final String CHANNEL_ID = "AlarmFullScreenChannel";
     protected static final String FULL_SCREEN_ACTION_ALARM = "AlarmActionFullScreen";
-    protected static final String WALK_ACTION = "AlarmActionWalkToDismiss";
+    protected static final String WALK_ACTION = "AlarmActionWalk";
+    protected static final String DISMISS_ALARM_ACTION = "AlarmActionDismiss";
+    protected static final String ERROR_TOAST_ACTION = "AlarmActionErrorToast";
+    protected static final String INTENT_EXTRA_STEPS = "StepsStringExtra";
+    protected static final String INTENT_EXTRA_TOAST_ERROR = "ErrorToastStringExtra";
 
-    static final int NOTIFICATION_ID = 1;
 
+
+    private BroadcastReceiver alarmFullScreenReceiver;
+
+
+    public static final int NOTIFICATION_ID_ALARM = 1;
 
 
     /**
@@ -55,7 +64,7 @@ public class AlarmFullScreen extends AppCompatActivity {
      */
     private static final int UI_ANIMATION_DELAY = 300;
     private final Handler mHideHandler = new Handler();
-    private View mContentView;
+    private static View mContentView;
     private final Runnable mHidePart2Runnable = new Runnable() {
         @SuppressLint("InlinedApi")
         @Override
@@ -145,16 +154,47 @@ public class AlarmFullScreen extends AppCompatActivity {
             }
         });
 
-        // Upon interacting with UI controls, delay any scheduled hide()
-        // operations to prevent the jarring behavior of controls going away
-        // while interacting with the UI.
-
-
+        registerReceiver();
 
 
     }
 
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (alarmFullScreenReceiver != null) {
+            unregisterReceiver(alarmFullScreenReceiver);
+        }
+    }
 
+    private void registerReceiver() {
+        alarmFullScreenReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                switch (intent.getAction()) {
+                    case AlarmFullScreen.WALK_ACTION:
+                        String stepsMessage = intent.getStringExtra(AlarmFullScreen.INTENT_EXTRA_STEPS);
+                        TextView view = (TextView) findViewById(R.id.fullscreen_content);
+                        view.setText(stepsMessage);
+                        break;
+                    case AlarmFullScreen.DISMISS_ALARM_ACTION:
+                        cancelFullScreenNotification(context);
+                        break;
+                    case AlarmFullScreen.ERROR_TOAST_ACTION:
+                        String toastMessage = intent.getStringExtra
+                                (AlarmFullScreen.INTENT_EXTRA_TOAST_ERROR);
+                        Toast.makeText(context, toastMessage, Toast.LENGTH_LONG).show();
+                        break;
+                }
+
+            }
+        };
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(AlarmFullScreen.WALK_ACTION);
+        filter.addAction(AlarmFullScreen.DISMISS_ALARM_ACTION);
+        filter.addAction(AlarmFullScreen.ERROR_TOAST_ACTION);
+        registerReceiver(alarmFullScreenReceiver, filter);
+    }
 
     private void toggle() {
         if (mVisible) {
@@ -203,8 +243,16 @@ public class AlarmFullScreen extends AppCompatActivity {
         mHideHandler.postDelayed(mHideRunnable, delayMillis);
     }
 
+    private void cancelFullScreenNotification(Context context){
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+        notificationManager.cancel(NOTIFICATION_ID_ALARM);
+        moveTaskToBack(true);
+        finish();
 
-    static void CreateFullScreenNotification(Context context, String alarmTime) {
+
+    }
+
+   public static void createFullScreenNotification(Context context, String alarmTime) {
         Intent intent = new Intent(context, AlarmFullScreen.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_USER_ACTION | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, 0);
@@ -213,13 +261,18 @@ public class AlarmFullScreen extends AppCompatActivity {
                 new NotificationCompat.Builder(context, CHANNEL_ID)
                         .setSmallIcon(R.drawable.ic_launcher_background)
                         .setContentTitle(alarmTime)
-                        .setContentText("This is a test")
+                        .setContentText(context.getString(R.string.alarm_notification_subtext))
                         .setPriority(NotificationCompat.PRIORITY_MAX)
                         .setCategory(NotificationCompat.CATEGORY_ALARM)
                         .setContentIntent(pendingIntent)
-                        .setFullScreenIntent(pendingIntent, true);
+                        .setFullScreenIntent(pendingIntent, true)
+                        .setAutoCancel(false)
+                        .setOngoing(true);
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
-        notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
+        notificationManager.notify(NOTIFICATION_ID_ALARM, notificationBuilder.build());
 
     }
+
+
 }
+

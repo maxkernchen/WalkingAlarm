@@ -16,9 +16,10 @@
         android:layout_height="match_parent"
         android:gravity="center"
         android:keepScreenOn="true"
-        android:text="@string/dummy_content"
+        android:text="@string/place_holder_alarm_name"
         android:textColor="?attr/fullscreenTextColor"
         android:textSize="50sp"
+        android:alpha="0.4"
         android:textStyle="bold" />
 
     <!-- This FrameLayout insets its children based on system windows using

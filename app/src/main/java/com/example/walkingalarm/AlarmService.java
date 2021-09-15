@@ -20,14 +20,28 @@ import android.widget.Toast;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.fitness.Fitness;
+import com.google.android.gms.fitness.data.DataSet;
+import com.google.android.gms.fitness.data.DataType;
+import com.google.android.gms.fitness.data.Field;
+import com.google.android.gms.tasks.OnSuccessListener;
+
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AlarmService extends Service {
     private SharedPreferences prefs;
-    public AlarmService(){
+    private int currentSteps;
+    private AtomicBoolean foundSteps = new AtomicBoolean(false);
+    private static final String logTag = "AlarmService";
+    private boolean errorFoundDuringAlarm = false;
+    private int startingSteps = 0;
 
-    }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -37,8 +51,6 @@ public class AlarmService extends Service {
             startBackGroundThread();
 
             startForeground(2, notification);
-
-
 
         } else {
 
@@ -56,7 +68,6 @@ public class AlarmService extends Service {
     }
 
 
-
     private void startBackGroundThread(){
         new Thread(new Runnable() {
             public void run() {
@@ -69,14 +80,25 @@ public class AlarmService extends Service {
                     if(isAlarm != null){
                         Log.i("AlarmService", "ALARM TRIGGERED!");
                         toFullScreenAlarm(isAlarm.getAlarmName());
+                        // wait some time for notification to reach user.
+                        sleepMainThread(2000);
+                        startingSteps = getCurrentSteps();
+                        while(stepsRemainingToDismiss() && !errorFoundDuringAlarm) {
+                            sleepMainThread(500);
+                        }
+                        Log.d(logTag,
+                                "Init Steps: " + startingSteps + " Final: " + getCurrentSteps()
+                                );
+                        // only dismiss for non-errors, error message will pause before exiting.
+                        if(!errorFoundDuringAlarm){
+                            dismissAlarm();
+                        }
+                        errorFoundDuringAlarm = false;
+
 
                     }
                     Log.i("AlarmService", LocalDateTime.now().toString());
-                    try {
-                        Thread.sleep(3000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+                    sleepMainThread(3000);
                 }
             }
         }).start();
@@ -102,12 +124,6 @@ public class AlarmService extends Service {
                     .setPriority(NotificationManager.IMPORTANCE_MIN)
                     .setCategory(Notification.CATEGORY_SERVICE)
                     .build();
-
-            Toast.makeText(this, "Service Started", Toast.LENGTH_LONG).show();
-
-
-
-
 
 
             this.prefs = getSharedPreferences(getString(R.string.shared_prefs_key),
@@ -137,20 +153,6 @@ public class AlarmService extends Service {
                 channel.setSound(alarmTone, audioAttributes);
                 notificationManager.createNotificationChannel(channel);
 
-
-               /* Intent intent = new Intent(AlarmFullScreen.FULL_SCREEN_ACTION_ALARM,
-                        null, this, AlarmReceiver.class);
-                PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
-                        0);
-
-                NotificationCompat.Builder alarmBuilder = new NotificationCompat.Builder(
-                        this,AlarmFullScreen.CHANNEL_ID );
-                notification = notificationBuilder.setOngoing(true)
-                        .setContentTitle("Alarm Triggered!")
-                        .setPriority(NotificationManager.IMPORTANCE_HIGH)
-                        .setCategory(Notification.CATEGORY_ALARM)
-                        .setContentIntent(pendingIntent)
-                        .build();*/
 
             }
         }
@@ -186,6 +188,119 @@ public class AlarmService extends Service {
         if (alarmManager != null) {
             alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), pendingIntent);
         }
+
+    }
+
+    private void dismissAlarm(){
+        Intent intent = new Intent(AlarmFullScreen.DISMISS_ALARM_ACTION, null, this,
+                AlarmReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+        try {
+            pendingIntent.send();
+        } catch (PendingIntent.CanceledException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void findCurrentSteps(){
+
+        CountDownLatch latch = new CountDownLatch(1);
+        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
+        if(account == null){
+           errorMessageToast(getString(R.string.could_not_find_account_error));
+        }
+        else {
+            Fitness.getHistoryClient(getApplicationContext(), account)
+                    .readDailyTotal(DataType.TYPE_STEP_COUNT_DELTA)
+                    .addOnSuccessListener(new OnSuccessListener<DataSet>() {
+                        @Override
+                        public void onSuccess(DataSet dataSet) {
+
+                            final int stepsInner = dataSet.getDataPoints().get(0).getValue(Field.FIELD_STEPS).asInt();
+                            Log.d(logTag, "Steps Found: " + stepsInner + "  - " + LocalDateTime.now().toString());
+                            setCurrentSteps(stepsInner);
+                            foundSteps.set(true);
+                            Log.d(logTag, "latch countdown" + LocalDateTime.now().toString());
+                            latch.countDown();
+
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                    });
+
+            boolean timedOut = false;
+            try {
+                timedOut = !latch.await(5000, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            if(timedOut){
+                errorMessageToast(getString(R.string.could_not_find_steps_error));
+            }
+
+            Log.d(logTag, "latch done" + LocalDateTime.now().toString());
+        }
+
+    }
+
+    private void setCurrentSteps(int currentSteps) {
+        this.currentSteps = currentSteps;
+    }
+    public int getCurrentSteps() {
+        findCurrentSteps();
+        return this.currentSteps;
+    }
+    public boolean stepsRemainingToDismiss(){
+        // TODO Replace with setting
+        int stepsToDismiss = 5;
+        int stepsRemaining = stepsToDismiss - (getCurrentSteps() - startingSteps);
+        stepsRemaining = Math.max(stepsRemaining, 0);
+        updateStepCountAlarmFullScreen(stepsRemaining);
+
+        return stepsRemaining > 0;
+
+    }
+
+    private void updateStepCountAlarmFullScreen(int steps){
+
+        Intent intent = new Intent(AlarmFullScreen.WALK_ACTION, null, this,
+                AlarmReceiver.class);
+        intent.putExtra(AlarmFullScreen.INTENT_EXTRA_STEPS, getString(R.string.alarm_steps_remaining, steps));
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+        try {
+            pendingIntent.send();
+        } catch (PendingIntent.CanceledException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sleepMainThread(int milliseconds){
+        try{
+            Thread.sleep(milliseconds);
+        } catch(InterruptedException e){
+            e.printStackTrace();
+        }
+
+    }
+    private void errorMessageToast(String toastText) {
+
+        Intent intent = new Intent(AlarmFullScreen.ERROR_TOAST_ACTION, null, this,
+                AlarmReceiver.class);
+        intent.putExtra(AlarmFullScreen.INTENT_EXTRA_TOAST_ERROR, toastText);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+        try {
+            pendingIntent.send();
+        } catch (PendingIntent.CanceledException e) {
+            e.printStackTrace();
+        }
+
+        this.sleepMainThread(5000);
+
+        dismissAlarm();
+        this.errorFoundDuringAlarm = true;
 
 
     }

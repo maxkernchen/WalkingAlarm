@@ -10,6 +10,9 @@
     <string name="hello_first_fragment">Hello first fragment</string>
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
     <string name="place_holder_alarm_name">Place Holder Alarm</string>
+    <string name="alarm_steps_remaining">Steps Remaining: %1$d </string>
+    <string name="alarm_notification_subtext">Press to Dismiss Alarm</string>
+
     <string name="shared_prefs_key">com.example.walkingalarm.preferences</string>
     <string name="monday">Mo</string>
     <string name="tuesday">Tu</string>
@@ -21,6 +24,12 @@
     <string name="title_activity_alarm_full_screen">AlarmFullScreen</string>
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">DUMMY\nCONTENT</string>
+    <!-- Error Messages -->
+    <string name="could_not_find_account_error">Error: Could not find Google Fit Account,
+        please restart app</string>
+    <string name="could_not_find_steps_error">Error: Could not find current steps,
+        alarm will be dismissed</string>
+
 
 
 </resources>

@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.util.Log;
-import android.widget.Toast;
 
 public class AlarmReceiver extends BroadcastReceiver {
     @Override
@@ -22,11 +21,31 @@ public class AlarmReceiver extends BroadcastReceiver {
         else if(intent.getAction().equals(AlarmFullScreen.FULL_SCREEN_ACTION_ALARM)){
             Log.i("AlarmReciever", "Started FullScreenAlarm");
 
-            AlarmFullScreen.CreateFullScreenNotification(context, (String)
+            AlarmFullScreen.createFullScreenNotification(context, (String)
                     intent.getExtras().get("AlarmTime"));
         }
         else if(intent.getAction().equals(AlarmFullScreen.WALK_ACTION)){
+            Log.i("AlarmReciever", "Started StepsFullScreen");
 
+            Intent in = new Intent(AlarmFullScreen.WALK_ACTION);
+            in.putExtra(AlarmFullScreen.INTENT_EXTRA_STEPS,
+                    intent.getStringExtra(AlarmFullScreen.INTENT_EXTRA_STEPS));
+            context.sendBroadcast(in);
+        }
+        else if (intent.getAction().equals(AlarmFullScreen.DISMISS_ALARM_ACTION)){
+            Log.i("AlarmReciever", "Started Dismiss");
+
+            Intent in = new Intent(AlarmFullScreen.DISMISS_ALARM_ACTION);
+            context.sendBroadcast(in);
+
+        }
+        else if(intent.getAction().equals(AlarmFullScreen.ERROR_TOAST_ACTION)){
+            Log.i("AlarmReciever", "Started Error Toast");
+
+            Intent in = new Intent(AlarmFullScreen.ERROR_TOAST_ACTION);
+            in.putExtra(AlarmFullScreen.INTENT_EXTRA_TOAST_ERROR,
+                    intent.getStringExtra(AlarmFullScreen.INTENT_EXTRA_TOAST_ERROR));
+            context.sendBroadcast(in);
         }
     }
 }

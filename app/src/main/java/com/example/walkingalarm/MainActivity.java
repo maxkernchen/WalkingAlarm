@@ -16,9 +16,12 @@ import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.fitness.Fitness;
 import com.google.android.gms.fitness.FitnessOptions;
 import com.google.android.gms.fitness.data.Bucket;
+import com.google.android.gms.fitness.data.DataPoint;
 import com.google.android.gms.fitness.data.DataSet;
 import com.google.android.gms.fitness.data.DataType;
+import com.google.android.gms.fitness.data.Field;
 import com.google.android.gms.fitness.request.DataReadRequest;
+import com.google.android.gms.fitness.result.DataReadResponse;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.snackbar.Snackbar;
@@ -61,11 +64,10 @@ public class MainActivity extends AppCompatActivity {
 
     private static AlarmListAdapter singletonAlarmListAdapter;
 
-    private final static String logTag = "MainActivity";
+    private final static String LOG_TAG = "MainActivity";
+    private final static int GOOGLE_SIGN_IN_REQUEST_CODE = 1;
 
-
-
-    private GoogleSignInAccount account;
+    public static GoogleSignInAccount account;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -112,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        this.singletonAlarmListAdapter = alarmListAdapter;
+        singletonAlarmListAdapter = alarmListAdapter;
         Intent myService = new Intent(this, AlarmService.class);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -159,70 +161,26 @@ public class MainActivity extends AppCompatActivity {
                 .addDataType(DataType.TYPE_STEP_COUNT_DELTA, FitnessOptions.ACCESS_READ)
                 .build();
 
-        GoogleSignInAccount account = GoogleSignIn.getAccountForExtension(this, fitnessOptions);
-
-        boolean permissions = GoogleSignIn.hasPermissions(account, fitnessOptions);
-        GoogleSignIn.requestPermissions(
-                this,
-                2,
-                account,
+        GoogleSignInAccount account = GoogleSignIn.getAccountForExtension(this,
                 fitnessOptions);
 
+        boolean permissions = GoogleSignIn.hasPermissions(account, fitnessOptions);
+        if(!permissions) {
+            GoogleSignIn.requestPermissions(this, GOOGLE_SIGN_IN_REQUEST_CODE,
+                    account, fitnessOptions);
+        }
+
 
     }
-
-    public void startGoogleFit()
-    {
-          final FitnessOptions fitnessOptions = FitnessOptions.builder()
-                .addDataType(DataType.TYPE_STEP_COUNT_CUMULATIVE, FitnessOptions.ACCESS_READ)
-                .addDataType(DataType.TYPE_STEP_COUNT_DELTA, FitnessOptions.ACCESS_READ)
-                .build();
-
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(new Date());
-        long endTime = cal.getTimeInMillis();
-        cal.add(Calendar.WEEK_OF_YEAR, -1);
-        long startTime = cal.getTimeInMillis();
-
-        DataReadRequest readRequest = new DataReadRequest.Builder()
-                .aggregate(DataType.TYPE_STEP_COUNT_DELTA, DataType.AGGREGATE_STEP_COUNT_DELTA)
-//                .read(DataType.TYPE_STEP_COUNT_DELTA)
-                .bucketByTime(8, TimeUnit.DAYS)
-                .enableServerQueries()
-                .setTimeRange(startTime, endTime, TimeUnit.MILLISECONDS)
-                .build();
-
-
-
-        Fitness.getHistoryClient(this, this.account)
-                .readData(readRequest)
-                .addOnSuccessListener (response -> {
-                    // The aggregate query puts datasets into buckets, so convert to a
-                    // single list of datasets
-                    for (Bucket bucket : response.getBuckets()) {
-                        for (DataSet dataSet : bucket.getDataSets()) {
-                            Log.i(logTag, dataSet.toString());
-                        }
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.w(logTag, "There was an error reading data from Google Fit", e);
-                    Log.w(logTag, this.account.getEmail());
-
-
-                });
-    }
-
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if(requestCode == 2){
+        if(requestCode == GOOGLE_SIGN_IN_REQUEST_CODE){
             Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
             try {
-                this.account =  task.getResult(ApiException.class);
-                startGoogleFit();
+                account = task.getResult(ApiException.class);
             } catch (ApiException e) {
                 e.printStackTrace();
             }
