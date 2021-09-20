@@ -12,6 +12,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -258,7 +259,7 @@ public class AlarmFullScreen extends AppCompatActivity {
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, 0);
 
         NotificationCompat.Builder notificationBuilder =
-                new NotificationCompat.Builder(context, CHANNEL_ID)
+                new NotificationCompat.Builder(context, CHANNEL_ID + alarmTime)
                         .setSmallIcon(R.drawable.ic_launcher_background)
                         .setContentTitle(alarmTime)
                         .setContentText(context.getString(R.string.alarm_notification_subtext))
@@ -268,6 +269,7 @@ public class AlarmFullScreen extends AppCompatActivity {
                         .setFullScreenIntent(pendingIntent, true)
                         .setAutoCancel(false)
                         .setOngoing(true);
+
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
         notificationManager.notify(NOTIFICATION_ID_ALARM, notificationBuilder.build());
 

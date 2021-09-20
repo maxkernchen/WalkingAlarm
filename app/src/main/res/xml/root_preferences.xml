@@ -1,0 +1,24 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory app:title="@string/settings_header">
+
+        <EditTextPreference
+            app:defaultValue="5"
+            app:key="number_of_steps"
+            app:title="@string/steps_to_dismiss_pref_title"
+            app:useSimpleSummaryProvider="true"
+
+            />
+
+
+        <SwitchPreference
+            app:defaultValue="false"
+            app:key="dark_mode"
+            app:title="@string/dark_mode_pref_title"
+            app:useSimpleSummaryProvider="true" />
+
+    </PreferenceCategory>
+
+
+
+</PreferenceScreen>

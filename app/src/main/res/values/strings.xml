@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">WalkingAlarm</string>
+    <string name="app_name">Walking Alarm</string>
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
     <string name="first_fragment_label">First Fragment</string>
@@ -10,6 +10,7 @@
     <string name="hello_first_fragment">Hello first fragment</string>
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
     <string name="place_holder_alarm_name">Place Holder Alarm</string>
+    <string name="select_alarm_sound">Select Alarm Sound</string>
     <string name="alarm_steps_remaining">Steps Remaining: %1$d </string>
     <string name="alarm_notification_subtext">Press to Dismiss Alarm</string>
 
@@ -29,6 +30,17 @@
         please restart app</string>
     <string name="could_not_find_steps_error">Error: Could not find current steps,
         alarm will be dismissed</string>
+    <string name="duplicate_alarm_time_error">Error: Alarm already exists at this time </string>
+    <string name="no_steps_found_after_time">Error: Could not find change in steps,
+        dismissing Alarm</string>
+
+    <!-- Preference Titles -->
+    <string name="settings_header">General</string>
+    <string name="title_activity_settings">Settings</string>
+    <!-- Alarm Preferences -->
+    <string name="steps_to_dismiss_pref_title">Number of Steps to Dismiss Alarm (minimum 5 steps)</string>
+    <string name="dark_mode_pref_title">Enable Dark Theme</string>
+
 
 
 

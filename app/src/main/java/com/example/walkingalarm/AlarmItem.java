@@ -1,16 +1,16 @@
 package com.example.walkingalarm;
 
 
+import android.media.RingtoneManager;
+import android.net.Uri;
+
 import androidx.annotation.Nullable;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.HashSet;
 
 public class AlarmItem {
@@ -21,6 +21,12 @@ public class AlarmItem {
     private boolean expanded;
     private boolean active;
     private HashSet<DayOfWeek> daysOfWeek;
+    private String alarmSoundName;
+
+
+
+    private String soundUri;
+
 
 
 
@@ -46,6 +52,9 @@ public class AlarmItem {
         this.alarmName = this.getAlarmName();
         // add current day of week
         daysOfWeek.add(LocalDate.now().getDayOfWeek());
+        this.soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM).toString();
+
+        this.alarmSoundName = "Default Alarm Sound";
     }
 
     private LocalTime convertToDate(int hour, int minute){
@@ -96,6 +105,19 @@ public class AlarmItem {
 
     public void setAlarmTriggered(boolean alarmTriggered) {
         this.alarmTriggered = alarmTriggered;
+    }
+
+    public void updateAlarmSound(String newAlarmSound, String newAlarmName){
+        this.soundUri = newAlarmSound;
+        this.alarmSoundName = newAlarmName;
+    }
+
+    public String getAlarmSoundName() {
+        return alarmSoundName;
+    }
+
+    public String getSoundUri() {
+        return soundUri;
     }
 
     @Override

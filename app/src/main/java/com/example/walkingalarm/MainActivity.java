@@ -2,9 +2,14 @@ package com.example.walkingalarm;
 
 import android.app.Activity;
 import android.app.TimePickerDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 
@@ -36,8 +41,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 
+import androidx.fragment.app.FragmentTransaction;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -47,6 +54,7 @@ import com.example.walkingalarm.databinding.ActivityMainBinding;
 
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
 
@@ -66,6 +74,28 @@ public class MainActivity extends AppCompatActivity {
 
     private final static String LOG_TAG = "MainActivity";
     private final static int GOOGLE_SIGN_IN_REQUEST_CODE = 1;
+    public final static String ALARM_SOUND_PICK_ACTION = "AlarmSoundPickAction";
+
+    private int currentItemIndexSoundPick = -1;
+
+    private BroadcastReceiver mainActivityReceiver;
+
+    ActivityResultLauncher<Intent> someActivityResultLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            new ActivityResultCallback<ActivityResult>() {
+                @Override
+                public void onActivityResult(ActivityResult result) {
+                    if (result.getResultCode() == Activity.RESULT_OK) {
+                        final Uri uri = result.getData().getParcelableExtra
+                                (RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
+
+                        updateAlarmSoundForCurrentItem(uri);
+
+
+                    }
+                }
+            });
+
 
     public static GoogleSignInAccount account;
 
@@ -90,6 +120,9 @@ public class MainActivity extends AppCompatActivity {
 
         rvAlarmListView.setAdapter(alarmListAdapter);
         rvAlarmListView.setLayoutManager(new LinearLayoutManager(this));
+
+
+        registerReceiver();
         // time picker dialog
 
         binding.fab.setOnClickListener(new View.OnClickListener() {
@@ -102,8 +135,13 @@ public class MainActivity extends AppCompatActivity {
                         new TimePickerDialog.OnTimeSetListener() {
                             @Override
                             public void onTimeSet(TimePicker tp, int sHour, int sMinute) {
-                                alarmListAdapter.addAlarmItem(
+                                boolean addSucceeded = alarmListAdapter.addAlarmItem(
                                         new AlarmItem(sHour, sMinute));
+                                if(!addSucceeded){
+                                    Toast.makeText(MainActivity.this,
+                                            R.string.duplicate_alarm_time_error,
+                                            Toast.LENGTH_LONG).show();
+                                }
 
                             }
                             //TODO: make this 24 hour based on system prefs
@@ -126,6 +164,13 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void updateAlarmSoundForCurrentItem (Uri alarmUri){
+        Ringtone ringtone = RingtoneManager.getRingtone(this, alarmUri);
+        String alarmName = ringtone.getTitle(this);
+        singletonAlarmListAdapter.updateAlarmSound(currentItemIndexSoundPick, alarmUri,
+                alarmName);
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -142,6 +187,8 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
+            startActivity(settingsIntent);
             return true;
         }
 
@@ -173,6 +220,38 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void registerReceiver() {
+        mainActivityReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent.getAction().equals(MainActivity.ALARM_SOUND_PICK_ACTION)) {
+
+                    int itemIndex =
+                            intent.getIntExtra(AlarmListAdapter.INTENT_EXTRA_INDEX_ITEM,
+                                    -1);
+                    if(itemIndex >= 0) {
+
+                        final Intent ringtone = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
+                        ringtone.putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM);
+                        ringtone.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true);
+                        ringtone.putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI,
+                                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM));
+                        currentItemIndexSoundPick = itemIndex;
+
+                        someActivityResultLauncher.launch(ringtone);
+                    }
+
+
+
+                }
+
+            }
+        };
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(MainActivity.ALARM_SOUND_PICK_ACTION);
+        registerReceiver(mainActivityReceiver, filter);
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -186,4 +265,5 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
 }

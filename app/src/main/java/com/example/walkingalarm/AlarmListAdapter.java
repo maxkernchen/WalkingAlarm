@@ -1,11 +1,15 @@
 package com.example.walkingalarm;
 
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.icu.util.TimeZone;
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -36,6 +40,7 @@ public class AlarmListAdapter extends
     private List<AlarmItem> alarmItems;
 
     private SharedPreferences prefs;
+    public static final String INTENT_EXTRA_INDEX_ITEM = "ExtraAlarmItemIndex";
 
 
     public AlarmListAdapter(SharedPreferences prefs) {
@@ -70,18 +75,28 @@ public class AlarmListAdapter extends
         return alarmItems.size();
     }
 
+
+
     private void saveAlarmItems(){
+        // get current items in shared prefs, this is because the service changes shared prefs
+        // statically, and we need to persist the isAlarmTriggered bool between UI changes.
+        List<AlarmItem> currentItemSharedPrefs = getAlarmItemsStatic(prefs);
         SharedPreferences.Editor prefsEditor = prefs.edit();
         Gson gson = new Gson();
-        int i = 0;
-        for (AlarmItem item : alarmItems) {
-            prefsEditor.putString(String.valueOf(i), gson.toJson(item));
-            i++;
+
+        for (int i = 0; i < alarmItems.size(); i++) {
+            AlarmItem tempItem = alarmItems.get(i);
+            int indexPrefs = currentItemSharedPrefs.indexOf(tempItem);
+            if(indexPrefs >= 0)
+                tempItem.setAlarmTriggered(currentItemSharedPrefs.get(indexPrefs).isAlarmTriggered());
+            prefsEditor.putString(String.valueOf(i), gson.toJson(tempItem));
+
         }
         prefsEditor.apply();
     }
 
-    private static void  saveAlarmItemsStatic(List<AlarmItem> itemsStatic, SharedPreferences prefs){
+
+    private static void saveAlarmItemsStatic(List<AlarmItem> itemsStatic, SharedPreferences prefs){
         SharedPreferences.Editor prefsEditor = prefs.edit();
         Gson gson = new Gson();
         int i = 0;
@@ -108,11 +123,29 @@ public class AlarmListAdapter extends
 
     }
 
-    public void addAlarmItem(AlarmItem item){
+    public void updateAlarmSound(int index, Uri alarmUri, String alarmName){
+        AlarmItem item = alarmItems.get(index);
+        item.updateAlarmSound(alarmUri.toString(), alarmName);
+        notifyItemChanged(index);
+    }
+
+    public boolean addAlarmItem(AlarmItem item){
+        if(checkForDuplicateAlarmItem(item))
+            return false;
+
         alarmItems.add(item);
         // new item is expanded for day of week selection
         alarmItems.get(alarmItems.size() - 1).setExpanded(true);
         notifyItemChanged(alarmItems.size());
+
+        return true;
+    }
+    private boolean checkForDuplicateAlarmItem(AlarmItem item){
+        for (AlarmItem itemLoop: this.alarmItems) {
+            if(itemLoop.equals(item))
+                return true;
+        }
+        return false;
     }
 
     public void deleteAlarmItem(int index){
@@ -126,40 +159,20 @@ public class AlarmListAdapter extends
 
     }
 
-    public boolean triggerAlarm(){
-        Calendar now = Calendar.getInstance();
-        AlarmItem activeAlarmItem = null;
-        boolean alarmTime = false;
-        for(AlarmItem item : alarmItems){
-            Calendar tempCal = item.getAlarmDate();
 
-            alarmTime = (tempCal.get(Calendar.HOUR_OF_DAY) == now.get(Calendar.HOUR_OF_DAY)
-                    && tempCal.get(Calendar.MINUTE) == now.get(Calendar.MINUTE));
-
-            if(alarmTime && item.isAlarmTriggered()) {
-                continue;
-            }
-            else if(alarmTime && !item.isAlarmTriggered() && item.isActive()){
-                item.setAlarmTriggered(true);
-
-                return true;
-            }
-            else if(!alarmTime && item.isAlarmTriggered()){
-                item.setAlarmTriggered(false);
-            }
-        }
-        return false;
-    }
 
     public static AlarmItem triggerAlarmStatic(List<AlarmItem> staticItems, SharedPreferences prefs){
         Calendar now = Calendar.getInstance();
-        AlarmItem activeAlarmItem = null;
+        LocalDate nowDate = LocalDate.now();
         boolean alarmTime = false;
         for(AlarmItem item : staticItems){
             Calendar tempCal = item.getAlarmDate();
+            HashSet<DayOfWeek> daysOfWeek = item.getDaysOfWeek();
+
 
             alarmTime = (tempCal.get(Calendar.HOUR_OF_DAY) == now.get(Calendar.HOUR_OF_DAY)
-                    && tempCal.get(Calendar.MINUTE) == now.get(Calendar.MINUTE));
+                    && tempCal.get(Calendar.MINUTE) == now.get(Calendar.MINUTE) &&
+                    daysOfWeek.contains(nowDate.getDayOfWeek()));
 
           if(alarmTime && !item.isAlarmTriggered() && item.isActive()){
                 item.setAlarmTriggered(true);
@@ -188,6 +201,7 @@ public class AlarmListAdapter extends
         private LinearLayout subItem;
         private ArrayList<ToggleButton> toggleButtons;
         private View itemView;
+        private Button alarmSoundPicker;
 
 
         public AlarmViewHolder(View itemView) {
@@ -198,6 +212,7 @@ public class AlarmListAdapter extends
             alarmActiveSwitch = (SwitchCompat) itemView.findViewById(R.id.alarm_active_switch);
             subItem = (LinearLayout) itemView.findViewById(R.id.sub_alarm_info);
             toggleButtons = this.getToggleDayOfWeeks(itemView);
+            alarmSoundPicker = (Button) itemView.findViewById(R.id.alarm_select_sound);
             this.setUpListeners(this);
 
         }
@@ -205,13 +220,12 @@ public class AlarmListAdapter extends
         private void bind(AlarmItem alarmItem){
 
             alarmNameTextView.setText(alarmItem.getAlarmName());
-
-
             boolean expanded = alarmItem.isExpanded();
             subItem.setVisibility(expanded ? View.VISIBLE : View.GONE);
             boolean active = alarmItem.isActive();
             alarmActiveSwitch.setChecked(active);
             bindDayOfWeekToggle(alarmItem);
+            alarmSoundPicker.setText(alarmItem.getAlarmSoundName());
 
 
         }
@@ -273,6 +287,22 @@ public class AlarmListAdapter extends
                 });
                 i++;
             }
+
+            alarmSoundPicker.setOnClickListener(l -> {
+                Intent intent = new Intent(MainActivity.ALARM_SOUND_PICK_ACTION, null, itemView.getContext(),
+                        AlarmReceiver.class);
+                int position = alarmViewHolder.getAdapterPosition();
+                intent.putExtra(AlarmListAdapter.INTENT_EXTRA_INDEX_ITEM, position);
+                PendingIntent pendingIntent = PendingIntent.getBroadcast(itemView.getContext(), 0, intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT);
+                try {
+                    pendingIntent.send();
+                } catch (PendingIntent.CanceledException e) {
+                    e.printStackTrace();
+                }
+            });
         }
+
+
     }
 }
