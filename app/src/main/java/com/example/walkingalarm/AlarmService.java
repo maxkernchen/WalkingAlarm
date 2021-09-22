@@ -15,7 +15,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -34,7 +33,6 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AlarmService extends Service {
     private SharedPreferences prefs;
@@ -45,6 +43,11 @@ public class AlarmService extends Service {
     private int startingSteps = 0;
     private Calendar alarmStartMonitor;
     private static final int SECONDS_TO_WAIT_FOR_STEPS = 30;
+    public static String TOAST_EXTRA_ALARM_SERVICE = "ToastExtraMainActivity";
+    public final static String TOAST_MESSAGE_FROM_SERVICE_ACTION = "ToastMessageServiceAction";
+
+    private String currentAlarmName = "";
+
 
     private NotificationChannel notificationChannelAlarm;
 
@@ -84,15 +87,16 @@ public class AlarmService extends Service {
                     AlarmItem isAlarm = AlarmListAdapter.triggerAlarmStatic(items, prefs);
 
                     if(isAlarm != null){
+                        currentAlarmName = isAlarm.getAlarmName();
                         Log.i("AlarmService", "ALARM TRIGGERED!");
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            updateAlarmChannelSoundAndroid0(isAlarm.getSoundUri(),
+                            createAlarmChannelSoundAndroidO(isAlarm.getSoundUri(),
                                     isAlarm.getAlarmName());
                         }
                         else{
                             //TODO older api call.
                         }
-                        toFullScreenAlarm(isAlarm.getAlarmName());
+                        toFullScreenAlarm(getStepsToDimiss());
                         // wait some time for notification to reach user.
                         sleepMainThread(2000);
                         startingSteps = getCurrentSteps();
@@ -106,9 +110,13 @@ public class AlarmService extends Service {
                                 );
                         // only dismiss for non-errors, error message will pause before exiting.
                         if(!errorFoundDuringAlarm){
+                            if(!AlarmFullScreen.isCreated){
+                                stepsDismissedToast(getString(R.string.alarm_dismissed_toast));
+                            }
                             dismissAlarm();
                         }
                         errorFoundDuringAlarm = false;
+                        currentAlarmName = "";
 
 
                     }
@@ -197,10 +205,11 @@ public class AlarmService extends Service {
             return notification;
         }
 
-    private void toFullScreenAlarm(String alarmTime){
+    private void toFullScreenAlarm( int steps){
         Intent intent = new Intent(AlarmFullScreen.FULL_SCREEN_ACTION_ALARM, null, this,
                 AlarmReceiver.class);
-        intent.putExtra("AlarmTime", alarmTime);
+        intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_NAME, currentAlarmName);
+        intent.putExtra(AlarmFullScreen.INTENT_EXTRA_STEPS, steps);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
         AlarmManager alarmManager = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
@@ -213,6 +222,7 @@ public class AlarmService extends Service {
     private void dismissAlarm(){
         Intent intent = new Intent(AlarmFullScreen.DISMISS_ALARM_ACTION, null, this,
                 AlarmReceiver.class);
+        intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_NAME, currentAlarmName);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
         try {
@@ -239,7 +249,6 @@ public class AlarmService extends Service {
                             final int stepsInner = dataSet.getDataPoints().get(0).getValue(Field.FIELD_STEPS).asInt();
                             Log.d(logTag, "Steps Found: " + stepsInner + "  - " + LocalDateTime.now().toString());
                             setCurrentSteps(stepsInner);
-                            Log.d(logTag, "latch countdown" + LocalDateTime.now().toString());
                             latch.countDown();
 
                         }
@@ -262,14 +271,7 @@ public class AlarmService extends Service {
 
     }
 
-    private void setCurrentSteps(int currentSteps) {
-        this.currentSteps = currentSteps;
-    }
-    public int getCurrentSteps() {
-        findCurrentSteps();
-        return this.currentSteps;
-    }
-    public boolean stepsRemainingToDismiss(){
+    private int getStepsToDimiss(){
         int stepsToDismiss = SettingsActivity.SettingsFragment.MINIMUM_STEPS_TO_DISMISS;
         String stepsString = settingsPref.
                 getString(SettingsActivity.SettingsFragment.STEPS_TO_DISMISS_KEY, "");
@@ -278,8 +280,21 @@ public class AlarmService extends Service {
         }
         catch(NumberFormatException nfe){
             // do nothing here as value is set to default of 5.
-           nfe.printStackTrace();
         }
+
+        return stepsToDismiss;
+    }
+
+
+    private void setCurrentSteps(int currentSteps) {
+        this.currentSteps = currentSteps;
+    }
+    public int getCurrentSteps() {
+        findCurrentSteps();
+        return this.currentSteps;
+    }
+    public boolean stepsRemainingToDismiss(){
+        int stepsToDismiss = getStepsToDimiss();
         int stepsRemaining = stepsToDismiss - (getCurrentSteps() - startingSteps);
         stepsRemaining = Math.max(stepsRemaining, 0);
         updateStepCountAlarmFullScreen(stepsRemaining);
@@ -298,7 +313,8 @@ public class AlarmService extends Service {
 
         Intent intent = new Intent(AlarmFullScreen.WALK_ACTION, null, this,
                 AlarmReceiver.class);
-        intent.putExtra(AlarmFullScreen.INTENT_EXTRA_STEPS, getString(R.string.alarm_steps_remaining, steps));
+        intent.putExtra(AlarmFullScreen.INTENT_EXTRA_STEPS, steps);
+        intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_NAME, currentAlarmName);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
         try {
@@ -308,11 +324,9 @@ public class AlarmService extends Service {
         }
     }
 
-    private void updateAlarmChannelSoundAndroid0(String alarmUri, String alarmName){
-        // TODO make audio attributes static final.
+    private void createAlarmChannelSoundAndroidO(String alarmUri, String alarmName){
 
-
-        AudioAttributes audioAttributes = new AudioAttributes.Builder()
+       final AudioAttributes audioAttributes = new AudioAttributes.Builder()
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .setUsage(AudioAttributes.USAGE_ALARM)
                 .build();
@@ -322,8 +336,9 @@ public class AlarmService extends Service {
                     + alarmName,
                     "channel_name", NotificationManager.IMPORTANCE_HIGH);
             channel.setDescription("channel_description");
-            channel.enableVibration(false);
-
+            channel.enableVibration(isVibrationEnabled());
+            if(isVibrationEnabled())
+                channel.setVibrationPattern(new long[] {500, 1000, 500, 1000, 500, 1000});
 
             Uri alarmTone = Uri.parse(alarmUri);
 
@@ -332,6 +347,11 @@ public class AlarmService extends Service {
             notificationManager.createNotificationChannel(channel);
 
         }
+    }
+
+    private boolean isVibrationEnabled(){
+        return settingsPref.getBoolean(SettingsActivity.SettingsFragment.VIBRATE_KEY,
+                false);
     }
 
     private void sleepMainThread(int milliseconds){
@@ -344,9 +364,9 @@ public class AlarmService extends Service {
     }
     private void errorMessageToast(String toastText) {
 
-        Intent intent = new Intent(AlarmFullScreen.ERROR_TOAST_ACTION, null, this,
+        Intent intent = new Intent(AlarmService.TOAST_MESSAGE_FROM_SERVICE_ACTION, null, this,
                 AlarmReceiver.class);
-        intent.putExtra(AlarmFullScreen.INTENT_EXTRA_TOAST_ERROR, toastText);
+        intent.putExtra(AlarmService.TOAST_EXTRA_ALARM_SERVICE, toastText);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
         try {
@@ -359,6 +379,23 @@ public class AlarmService extends Service {
 
         dismissAlarm();
         this.errorFoundDuringAlarm = true;
+
+
+    }
+
+    private void stepsDismissedToast(String toastText) {
+
+        Intent intent = new Intent(AlarmService.TOAST_MESSAGE_FROM_SERVICE_ACTION, null, this,
+                AlarmReceiver.class);
+        intent.putExtra(AlarmService.TOAST_EXTRA_ALARM_SERVICE, toastText);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+        try {
+            pendingIntent.send();
+        } catch (PendingIntent.CanceledException e) {
+            e.printStackTrace();
+        }
+
 
 
     }

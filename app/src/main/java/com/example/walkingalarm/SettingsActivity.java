@@ -14,6 +14,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.preference.EditTextPreference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
@@ -65,7 +66,10 @@ public class SettingsActivity extends AppCompatActivity {
     public static class SettingsFragment extends PreferenceFragmentCompat {
 
         private static SharedPreferences.OnSharedPreferenceChangeListener listnerSharedPrefs;
-        public final static String STEPS_TO_DISMISS_KEY = "number_of_steps";
+        public final static String STEPS_TO_DISMISS_KEY = "number_of_steps_setting_key";
+        public final static String DARK_MODE_KEY = "dark_mode_setting_key";
+        public final static String VIBRATE_KEY = "vibration_setting_key";
+
         private static EditTextPreference stepsToDismissEditText;
         private final static int MAX_STEPS_LENGTH = 2;
         public final static int MINIMUM_STEPS_TO_DISMISS = 5;
@@ -109,6 +113,14 @@ public class SettingsActivity extends AppCompatActivity {
                             stepsToDismissEditText.setText(
                                     String.valueOf(MINIMUM_STEPS_TO_DISMISS));
                         }
+                    }
+                    else if(key.equals(DARK_MODE_KEY)){
+                        boolean isDarkMode = sharedPreferences.getBoolean(key, false);
+                        if(isDarkMode)
+                            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+                        else
+                            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+
                     }
 
                 }

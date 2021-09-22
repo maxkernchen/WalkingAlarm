@@ -11,8 +11,10 @@
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
     <string name="place_holder_alarm_name">Place Holder Alarm</string>
     <string name="select_alarm_sound">Select Alarm Sound</string>
-    <string name="alarm_steps_remaining">Steps Remaining: %1$d </string>
-    <string name="alarm_notification_subtext">Press to Dismiss Alarm</string>
+    <string name="alarm_steps_remaining">Steps Remaining To Dismiss: %1$d</string>
+    <string name="alarm_dismissed_toast">Walking Alarm Dismissed</string>
+    <string name="alarm_notification_text">Alarm - %1$s </string>
+    <string name="alarm_notification_subtext">Walk %1$d Steps, Tap for Progress</string>
 
     <string name="shared_prefs_key">com.example.walkingalarm.preferences</string>
     <string name="monday">Mo</string>
@@ -22,7 +24,7 @@
     <string name="friday">Fr</string>
     <string name="saturday">Sa</string>
     <string name="sunday">Su</string>
-    <string name="title_activity_alarm_full_screen">AlarmFullScreen</string>
+    <string name="title_activity_alarm_full_screen">Alarm Dismiss Screen</string>
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">DUMMY\nCONTENT</string>
     <!-- Error Messages -->
@@ -40,6 +42,8 @@
     <!-- Alarm Preferences -->
     <string name="steps_to_dismiss_pref_title">Number of Steps to Dismiss Alarm (minimum 5 steps)</string>
     <string name="dark_mode_pref_title">Enable Dark Theme</string>
+    <string name="vibration_setting_title">Vibrate on Alarm</string>
+
 
 
 

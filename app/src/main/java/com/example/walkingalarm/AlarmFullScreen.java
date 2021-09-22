@@ -12,7 +12,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -21,7 +20,6 @@ import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.example.walkingalarm.databinding.ActivityAlarmFullScreenBinding;
 
@@ -35,11 +33,12 @@ public class AlarmFullScreen extends AppCompatActivity {
     protected static final String FULL_SCREEN_ACTION_ALARM = "AlarmActionFullScreen";
     protected static final String WALK_ACTION = "AlarmActionWalk";
     protected static final String DISMISS_ALARM_ACTION = "AlarmActionDismiss";
-    protected static final String ERROR_TOAST_ACTION = "AlarmActionErrorToast";
     protected static final String INTENT_EXTRA_STEPS = "StepsStringExtra";
-    protected static final String INTENT_EXTRA_TOAST_ERROR = "ErrorToastStringExtra";
+    protected static final String INTENT_EXTRA_ALARM_NAME = "AlarmNameExtra";
 
+    private NotificationCompat.Builder notificationBuilder;
 
+    public static boolean isCreated = false;
 
     private BroadcastReceiver alarmFullScreenReceiver;
 
@@ -156,6 +155,7 @@ public class AlarmFullScreen extends AppCompatActivity {
         });
 
         registerReceiver();
+        isCreated = true;
 
 
     }
@@ -163,6 +163,7 @@ public class AlarmFullScreen extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
+        isCreated = false;
         if (alarmFullScreenReceiver != null) {
             unregisterReceiver(alarmFullScreenReceiver);
         }
@@ -173,19 +174,30 @@ public class AlarmFullScreen extends AppCompatActivity {
             @Override
             public void onReceive(Context context, Intent intent) {
                 switch (intent.getAction()) {
-                    case AlarmFullScreen.WALK_ACTION:
-                        String stepsMessage = intent.getStringExtra(AlarmFullScreen.INTENT_EXTRA_STEPS);
-                        TextView view = (TextView) findViewById(R.id.fullscreen_content);
-                        view.setText(stepsMessage);
+                    case AlarmFullScreen.FULL_SCREEN_ACTION_ALARM: {
+                        String alarmName = intent.getStringExtra(
+                                AlarmFullScreen.INTENT_EXTRA_ALARM_NAME);
+                        int stepsToDismiss = intent.getIntExtra(AlarmFullScreen.INTENT_EXTRA_STEPS,
+                                -1);
+                        createFullScreenNotification(context, alarmName, stepsToDismiss);
                         break;
-                    case AlarmFullScreen.DISMISS_ALARM_ACTION:
-                        cancelFullScreenNotification(context);
+                    }
+                    case AlarmFullScreen.WALK_ACTION: {
+                        int steps = intent.getIntExtra
+                                (AlarmFullScreen.INTENT_EXTRA_STEPS, -1);
+                        if (steps >= 0) {
+                            TextView view = (TextView) findViewById(R.id.fullscreen_content);
+                            view.setText(getString(R.string.alarm_steps_remaining, steps));
+                        }
+
                         break;
-                    case AlarmFullScreen.ERROR_TOAST_ACTION:
-                        String toastMessage = intent.getStringExtra
-                                (AlarmFullScreen.INTENT_EXTRA_TOAST_ERROR);
-                        Toast.makeText(context, toastMessage, Toast.LENGTH_LONG).show();
+                    }
+                    case AlarmFullScreen.DISMISS_ALARM_ACTION: {
+                        String alarmName = intent.getStringExtra(
+                                AlarmFullScreen.INTENT_EXTRA_ALARM_NAME);
+                        cancelFullScreenNotification(context, alarmName);
                         break;
+                    }
                 }
 
             }
@@ -193,7 +205,7 @@ public class AlarmFullScreen extends AppCompatActivity {
         IntentFilter filter = new IntentFilter();
         filter.addAction(AlarmFullScreen.WALK_ACTION);
         filter.addAction(AlarmFullScreen.DISMISS_ALARM_ACTION);
-        filter.addAction(AlarmFullScreen.ERROR_TOAST_ACTION);
+        filter.addAction(AlarmFullScreen.FULL_SCREEN_ACTION_ALARM);
         registerReceiver(alarmFullScreenReceiver, filter);
     }
 
@@ -244,25 +256,29 @@ public class AlarmFullScreen extends AppCompatActivity {
         mHideHandler.postDelayed(mHideRunnable, delayMillis);
     }
 
-    private void cancelFullScreenNotification(Context context){
+    private void cancelFullScreenNotification(Context context, String alarmName){
+        isCreated = false;
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
         notificationManager.cancel(NOTIFICATION_ID_ALARM);
+        notificationManager.deleteNotificationChannel(CHANNEL_ID + alarmName);
         moveTaskToBack(true);
         finish();
 
-
     }
 
-   public static void createFullScreenNotification(Context context, String alarmTime) {
+   public static void createFullScreenNotification(Context context, String alarmName, int steps) {
         Intent intent = new Intent(context, AlarmFullScreen.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_USER_ACTION | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_USER_ACTION |
+                Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, 0);
 
         NotificationCompat.Builder notificationBuilder =
-                new NotificationCompat.Builder(context, CHANNEL_ID + alarmTime)
+                new NotificationCompat.Builder(context, CHANNEL_ID + alarmName)
                         .setSmallIcon(R.drawable.ic_launcher_background)
-                        .setContentTitle(alarmTime)
-                        .setContentText(context.getString(R.string.alarm_notification_subtext))
+                        .setContentTitle(context.getString(R.string.alarm_notification_text,
+                                alarmName))
+                        .setContentText(context.
+                                getString(R.string.alarm_notification_subtext, steps))
                         .setPriority(NotificationCompat.PRIORITY_MAX)
                         .setCategory(NotificationCompat.CATEGORY_ALARM)
                         .setContentIntent(pendingIntent)
@@ -270,10 +286,13 @@ public class AlarmFullScreen extends AppCompatActivity {
                         .setAutoCancel(false)
                         .setOngoing(true);
 
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.
+                from(context);
         notificationManager.notify(NOTIFICATION_ID_ALARM, notificationBuilder.build());
 
     }
+
+
 
 
 }

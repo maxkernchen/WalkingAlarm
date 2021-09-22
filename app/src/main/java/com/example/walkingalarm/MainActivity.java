@@ -15,21 +15,10 @@ import android.os.Bundle;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
-import com.google.android.gms.auth.api.signin.GoogleSignInClient;
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
-import com.google.android.gms.fitness.Fitness;
 import com.google.android.gms.fitness.FitnessOptions;
-import com.google.android.gms.fitness.data.Bucket;
-import com.google.android.gms.fitness.data.DataPoint;
-import com.google.android.gms.fitness.data.DataSet;
 import com.google.android.gms.fitness.data.DataType;
-import com.google.android.gms.fitness.data.Field;
-import com.google.android.gms.fitness.request.DataReadRequest;
-import com.google.android.gms.fitness.result.DataReadResponse;
 import com.google.android.gms.tasks.Task;
-import com.google.android.material.button.MaterialButton;
-import com.google.android.material.snackbar.Snackbar;
 
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultCallback;
@@ -38,15 +27,12 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.util.Log;
+import android.text.format.DateFormat;
 import android.view.View;
 
-import androidx.fragment.app.FragmentTransaction;
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
-import androidx.navigation.fragment.NavHostFragment;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.NavigationUI;
+import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -54,16 +40,10 @@ import com.example.walkingalarm.databinding.ActivityMainBinding;
 
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
 
-import java.lang.reflect.Array;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -76,11 +56,13 @@ public class MainActivity extends AppCompatActivity {
     private final static int GOOGLE_SIGN_IN_REQUEST_CODE = 1;
     public final static String ALARM_SOUND_PICK_ACTION = "AlarmSoundPickAction";
 
+
     private int currentItemIndexSoundPick = -1;
+    public static boolean is24HourTime = false;
 
     private BroadcastReceiver mainActivityReceiver;
 
-    ActivityResultLauncher<Intent> someActivityResultLauncher = registerForActivityResult(
+    ActivityResultLauncher<Intent> alarmPickerResultLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             new ActivityResultCallback<ActivityResult>() {
                 @Override
@@ -125,12 +107,16 @@ public class MainActivity extends AppCompatActivity {
         registerReceiver();
         // time picker dialog
 
+        is24HourTime = DateFormat.is24HourFormat(this);
+
+
         binding.fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 final Calendar cldr = Calendar.getInstance();
-                int hour = cldr.get(Calendar.HOUR);
+                int hour = is24HourTime ? cldr.get(Calendar.HOUR_OF_DAY) : cldr.get(Calendar.HOUR);
                 int minutes = cldr.get(Calendar.MINUTE);
+
                 final TimePickerDialog picker = new TimePickerDialog(MainActivity.this,
                         new TimePickerDialog.OnTimeSetListener() {
                             @Override
@@ -144,8 +130,7 @@ public class MainActivity extends AppCompatActivity {
                                 }
 
                             }
-                            //TODO: make this 24 hour based on system prefs
-                        }, hour, minutes, false);
+                        }, hour, minutes, is24HourTime);
                 picker.setCanceledOnTouchOutside(false);
                 picker.show();
 
@@ -153,6 +138,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         singletonAlarmListAdapter = alarmListAdapter;
+        this.setThemeOnStart();
         Intent myService = new Intent(this, AlarmService.class);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -233,23 +219,34 @@ public class MainActivity extends AppCompatActivity {
 
                         final Intent ringtone = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
                         ringtone.putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM);
-                        ringtone.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true);
                         ringtone.putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI,
                                 RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM));
                         currentItemIndexSoundPick = itemIndex;
 
-                        someActivityResultLauncher.launch(ringtone);
+                        alarmPickerResultLauncher.launch(ringtone);
                     }
 
-
-
                 }
+
 
             }
         };
         IntentFilter filter = new IntentFilter();
         filter.addAction(MainActivity.ALARM_SOUND_PICK_ACTION);
         registerReceiver(mainActivityReceiver, filter);
+    }
+
+    private void setThemeOnStart(){
+        SharedPreferences prefs =
+                PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        boolean isDarkMode =
+                prefs.getBoolean(SettingsActivity.SettingsFragment.DARK_MODE_KEY, false);
+        if(isDarkMode)
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+        else
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+
+
     }
 
     @Override

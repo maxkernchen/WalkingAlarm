@@ -23,7 +23,6 @@
             android:textSize="30sp"
             android:layout_marginStart="5dp"
             android:layout_weight="7"
-            android:textColor="@color/black"
             android:textStyle="bold"
             android:text="@string/place_holder_alarm_name"
        />
@@ -47,6 +46,7 @@
     <LinearLayout
         android:orientation="horizontal"
         android:weightSum="10"
+        android:paddingBottom="5dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         >
@@ -138,23 +138,31 @@
 
     </LinearLayout>
         <LinearLayout
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="10dp"
             android:orientation="horizontal"
             android:weightSum="10"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="50dp"
             >
             <Button
                 android:id="@+id/alarm_select_sound"
                 android:layout_width="0dp"
+                android:layout_marginStart="10dp"
                 android:layout_height="match_parent"
                 android:layout_weight="7"
+                android:alpha=".7"
+                android:textColor="@color/deep_sea_green_light"
+                android:drawableLeft="@android:drawable/ic_lock_silent_mode_off"
+                android:backgroundTint="@color/black"
                 android:text="@string/select_alarm_sound"
 
                 />
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/alarm_delete_button"
                 android:layout_width="0dp"
-                android:layout_weight="1.6"
+                android:layout_marginStart="10dp"
+                android:layout_weight="2"
                 android:layout_height="match_parent"
                 android:background="@color/gray"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"

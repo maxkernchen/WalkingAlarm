@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Calendar;
 import java.util.HashSet;
+import java.util.Locale;
 
 public class AlarmItem {
 
@@ -38,15 +39,18 @@ public class AlarmItem {
         this.expanded = false;
         this.active = true;
         this.alarmDate =  Calendar.getInstance();
-        alarmDate.set(Calendar.HOUR_OF_DAY, hour);
+        if(MainActivity.is24HourTime)
+            alarmDate.set(Calendar.HOUR_OF_DAY, hour);
+        else{
+            alarmDate.set(Calendar.HOUR, hour - 12);
+        }
         alarmDate.set(Calendar.MINUTE, minute);
         alarmDate.set(Calendar.SECOND, 0);
         alarmDate.set(Calendar.MILLISECOND, 0);
         //according to javadocs above set methods only take affect after calling getter.
         //so a call to getTime is needed here.
         alarmDate.getTime();
-        // TODO: add logic that if alarm created is exactly current time, trigger it the next
-        // TODO: day. Similar to android default clock app
+
 
         this.daysOfWeek = new HashSet<>();
         this.alarmName = this.getAlarmName();
@@ -62,7 +66,16 @@ public class AlarmItem {
     }
 
     public String getAlarmName(){
-        return new SimpleDateFormat("K:mm a").format(alarmDate.getTime()).toString();
+        String alarmName;
+        if(MainActivity.is24HourTime){
+            alarmName = new SimpleDateFormat("HH:mm", Locale.ENGLISH).
+                    format(alarmDate.getTime()).toString();
+        }
+        else{
+            alarmName = new SimpleDateFormat("hh:mm a", Locale.ENGLISH).
+                    format(alarmDate.getTime()).toString();
+        }
+        return alarmName;
     }
 
     public void setExpanded(boolean setExpansion){
@@ -85,9 +98,6 @@ public class AlarmItem {
     }
 
 
-    public String alarmDateToString() {
-        return alarmDate.toString();
-    }
 
     public void removeDayOfWeek(DayOfWeek toRemove){
         daysOfWeek.remove(toRemove);

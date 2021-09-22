@@ -16,7 +16,7 @@
         android:layout_height="match_parent"
         android:gravity="center"
         android:keepScreenOn="true"
-        android:text="@string/place_holder_alarm_name"
+        android:text="@string/alarm_steps_remaining"
         android:textColor="?attr/fullscreenTextColor"
         android:textSize="50sp"
         android:alpha="0.4"

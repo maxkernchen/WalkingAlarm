@@ -159,8 +159,6 @@ public class AlarmListAdapter extends
 
     }
 
-
-
     public static AlarmItem triggerAlarmStatic(List<AlarmItem> staticItems, SharedPreferences prefs){
         Calendar now = Calendar.getInstance();
         LocalDate nowDate = LocalDate.now();
