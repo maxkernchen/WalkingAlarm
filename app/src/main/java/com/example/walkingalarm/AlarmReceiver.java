@@ -12,7 +12,6 @@ import androidx.core.app.NotificationManagerCompat;
 public class AlarmReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.i("AlarmReciever", "Received Broadcast for action: " + intent.getAction());
         switch (intent.getAction()) {
             case Intent.ACTION_BOOT_COMPLETED: {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -30,11 +29,12 @@ public class AlarmReceiver extends BroadcastReceiver {
                 String alarmName =
                         intent.getStringExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_NAME);
                 AlarmFullScreen.createFullScreenNotification(context, alarmName, steps);
+                Log.i("AlarmReciever", "Done FullScreenAlarm");
+                AlarmService.notificationTriggered = true;
 
                 break;
             }
             case AlarmFullScreen.WALK_ACTION: {
-                Log.i("AlarmReciever", "Started StepsFullScreen");
 
                 Intent in = new Intent(AlarmFullScreen.WALK_ACTION);
                 int steps = intent.getIntExtra(AlarmFullScreen.INTENT_EXTRA_STEPS, -1);

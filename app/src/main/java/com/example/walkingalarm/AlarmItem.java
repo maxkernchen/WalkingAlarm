@@ -39,15 +39,11 @@ public class AlarmItem {
         this.expanded = false;
         this.active = true;
         this.alarmDate =  Calendar.getInstance();
-        if(MainActivity.is24HourTime)
-            alarmDate.set(Calendar.HOUR_OF_DAY, hour);
-        else{
-            alarmDate.set(Calendar.HOUR, hour - 12);
-        }
+        alarmDate.set(Calendar.HOUR_OF_DAY, hour);
         alarmDate.set(Calendar.MINUTE, minute);
         alarmDate.set(Calendar.SECOND, 0);
         alarmDate.set(Calendar.MILLISECOND, 0);
-        //according to javadocs above set methods only take affect after calling getter.
+        //according to javadocs above set methods only take effect after calling getter.
         //so a call to getTime is needed here.
         alarmDate.getTime();
 

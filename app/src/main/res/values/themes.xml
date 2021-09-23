@@ -11,7 +11,6 @@
         <item name="colorOnSecondary">@color/black</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
-        <!-- Customize your theme here. -->
     </style>
 
     <style name="Theme.WalkingAlarm.NoActionBar">
@@ -21,7 +20,6 @@
 
     <style name="Theme.WalkingAlarm.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
         <item name="colorPrimary">@color/black</item>
-
     </style>
 
     <style name="Theme.WalkingAlarm.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />

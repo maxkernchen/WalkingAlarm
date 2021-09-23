@@ -48,6 +48,8 @@ public class AlarmService extends Service {
 
     private String currentAlarmName = "";
 
+    public static boolean notificationTriggered = false;
+    private boolean foundNotifcation = false;
 
     private NotificationChannel notificationChannelAlarm;
 
@@ -98,10 +100,8 @@ public class AlarmService extends Service {
                         }
                         toFullScreenAlarm(getStepsToDimiss());
                         // wait some time for notification to reach user.
-                        sleepMainThread(2000);
+                        sleepMainThread(3000);
                         startingSteps = getCurrentSteps();
-                        alarmStartMonitor = Calendar.getInstance();
-                        alarmStartMonitor.add(Calendar.SECOND, SECONDS_TO_WAIT_FOR_STEPS);
                         while(stepsRemainingToDismiss() && !errorFoundDuringAlarm) {
                             sleepMainThread(500);
                         }
@@ -117,6 +117,8 @@ public class AlarmService extends Service {
                         }
                         errorFoundDuringAlarm = false;
                         currentAlarmName = "";
+                        notificationTriggered = false;
+                        foundNotifcation = false;
 
 
                     }
@@ -246,8 +248,8 @@ public class AlarmService extends Service {
                         @Override
                         public void onSuccess(DataSet dataSet) {
 
-                            final int stepsInner = dataSet.getDataPoints().get(0).getValue(Field.FIELD_STEPS).asInt();
-                            Log.d(logTag, "Steps Found: " + stepsInner + "  - " + LocalDateTime.now().toString());
+                            final int stepsInner = dataSet.getDataPoints().get(0).
+                                    getValue(Field.FIELD_STEPS).asInt();
                             setCurrentSteps(stepsInner);
                             latch.countDown();
 
@@ -266,7 +268,6 @@ public class AlarmService extends Service {
                 errorMessageToast(getString(R.string.could_not_find_steps_error));
             }
 
-            Log.d(logTag, "latch done" + LocalDateTime.now().toString());
         }
 
     }
@@ -299,9 +300,17 @@ public class AlarmService extends Service {
         stepsRemaining = Math.max(stepsRemaining, 0);
         updateStepCountAlarmFullScreen(stepsRemaining);
 
+        if(notificationTriggered){
+            alarmStartMonitor = Calendar.getInstance();
+            alarmStartMonitor.add(Calendar.SECOND, SECONDS_TO_WAIT_FOR_STEPS);
+            notificationTriggered = false;
+            foundNotifcation = true;
+            Log.i(logTag, "Notification Triggered bool true");
+        }
         Calendar now = Calendar.getInstance();
-        // if after 30 seconds we still have not detected any steps, just dismiss the alarm.
-        if(now.after(alarmStartMonitor) && stepsRemaining == stepsToDismiss){
+        // if after 30 seconds of the notification reaching the user we still
+        // have not detected any steps, just dismiss the alarm.
+        if(foundNotifcation && now.after(alarmStartMonitor) && stepsRemaining == stepsToDismiss){
             errorMessageToast(getString(R.string.could_not_find_steps_error));
             return false;
         }
@@ -374,8 +383,6 @@ public class AlarmService extends Service {
         } catch (PendingIntent.CanceledException e) {
             e.printStackTrace();
         }
-
-        this.sleepMainThread(3000);
 
         dismissAlarm();
         this.errorFoundDuringAlarm = true;
