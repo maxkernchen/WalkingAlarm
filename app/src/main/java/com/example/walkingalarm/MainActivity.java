@@ -57,10 +57,9 @@ public class MainActivity extends AppCompatActivity {
     public final static String ALARM_SOUND_PICK_ACTION = "AlarmSoundPickAction";
 
 
+
     private int currentItemIndexSoundPick = -1;
     public static boolean is24HourTime = false;
-
-    private BroadcastReceiver mainActivityReceiver;
 
     ActivityResultLauncher<Intent> alarmPickerResultLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -207,7 +206,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void registerReceiver() {
-        mainActivityReceiver = new BroadcastReceiver() {
+        BroadcastReceiver mainActivityReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 if (intent.getAction().equals(MainActivity.ALARM_SOUND_PICK_ACTION)) {
@@ -215,10 +214,9 @@ public class MainActivity extends AppCompatActivity {
                     int itemIndex =
                             intent.getIntExtra(AlarmListAdapter.INTENT_EXTRA_INDEX_ITEM,
                                     -1);
-                    if(itemIndex >= 0) {
+                    if (itemIndex >= 0) {
 
                         final Intent ringtone = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
-                        ringtone.putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM);
                         ringtone.putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI,
                                 RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM));
                         currentItemIndexSoundPick = itemIndex;

@@ -49,7 +49,7 @@ public class AlarmService extends Service {
     private String currentAlarmName = "";
 
     public static boolean notificationTriggered = false;
-    private boolean foundNotifcation = false;
+    private boolean foundNotification = false;
 
     private NotificationChannel notificationChannelAlarm;
 
@@ -84,7 +84,6 @@ public class AlarmService extends Service {
             public void run() {
 
                 while(true){
-
                     List<AlarmItem> items = AlarmListAdapter.getAlarmItemsStatic(prefs);
                     AlarmItem isAlarm = AlarmListAdapter.triggerAlarmStatic(items, prefs);
 
@@ -118,7 +117,7 @@ public class AlarmService extends Service {
                         errorFoundDuringAlarm = false;
                         currentAlarmName = "";
                         notificationTriggered = false;
-                        foundNotifcation = false;
+                        foundNotification = false;
 
 
                     }
@@ -203,8 +202,7 @@ public class AlarmService extends Service {
             Uri alarmTone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
 
             builder.setSound(alarmTone);
-            Notification notification = builder.build();
-            return notification;
+            return builder.build();
         }
 
     private void toFullScreenAlarm( int steps){
@@ -304,13 +302,13 @@ public class AlarmService extends Service {
             alarmStartMonitor = Calendar.getInstance();
             alarmStartMonitor.add(Calendar.SECOND, SECONDS_TO_WAIT_FOR_STEPS);
             notificationTriggered = false;
-            foundNotifcation = true;
+            foundNotification = true;
             Log.i(logTag, "Notification Triggered bool true");
         }
         Calendar now = Calendar.getInstance();
         // if after 30 seconds of the notification reaching the user we still
         // have not detected any steps, just dismiss the alarm.
-        if(foundNotifcation && now.after(alarmStartMonitor) && stepsRemaining == stepsToDismiss){
+        if(foundNotification && now.after(alarmStartMonitor) && stepsRemaining == stepsToDismiss){
             errorMessageToast(getString(R.string.could_not_find_steps_error));
             return false;
         }
