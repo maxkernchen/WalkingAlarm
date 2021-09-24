@@ -11,6 +11,9 @@ import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import android.widget.TimePicker;
 
 import org.junit.AfterClass;
@@ -58,14 +61,14 @@ public class WalkingAlarmUITests {
             onView(withText("OK")).perform(click());
             // should not have added another alarm.
             if(i == 1){
-                assert MainActivity.getAlarmListAdapterInstance().getItemCount() == 1;
+                assertEquals(1, MainActivity.getAlarmListAdapterInstance().getItemCount());
             }
 
         }
 
         onView(withId(R.id.alarm_delete_button)).perform(click());
 
-        assert MainActivity.getAlarmListAdapterInstance().getItemCount() == 0;
+        assertEquals(0, MainActivity.getAlarmListAdapterInstance().getItemCount());
 
     }
 
@@ -86,11 +89,11 @@ public class WalkingAlarmUITests {
 
         onView(withText("OK")).perform(click());
 
-        assert MainActivity.getAlarmListAdapterInstance().getItemCount() == 1;
+        assertEquals(1, MainActivity.getAlarmListAdapterInstance().getItemCount());
 
         onView(withId(R.id.alarm_delete_button)).perform(click());
 
-        assert MainActivity.getAlarmListAdapterInstance().getItemCount() == 0;
+        assertEquals(0, MainActivity.getAlarmListAdapterInstance().getItemCount());
 
     }
 
