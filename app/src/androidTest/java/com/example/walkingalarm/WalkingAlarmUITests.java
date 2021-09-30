@@ -1,36 +1,35 @@
 package com.example.walkingalarm;
 
-import static android.service.autofill.Validators.not;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
-import static androidx.test.espresso.assertion.ViewAssertions.matches;
-import static androidx.test.espresso.matcher.RootMatchers.withDecorView;
 import static androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom;
-import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import android.widget.TimePicker;
 
-import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import androidx.test.core.app.ActivityScenario;
 import androidx.test.espresso.contrib.PickerActions;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.filters.LargeTest;
 import androidx.test.filters.SmallTest;
 
 import java.util.Calendar;
 
+/**
+ * Small Instrumentation Test class, will create an alarm then delete it.
+ * Also will test for a duplicate alarm being added.
+ *
+ * @version 1.0
+ * @author Max Kernchen
+ *
+ */
 @RunWith(AndroidJUnit4.class)
 @SmallTest
 public class WalkingAlarmUITests {
@@ -39,7 +38,9 @@ public class WalkingAlarmUITests {
     public ActivityScenarioRule<MainActivity> activityRule
             = new ActivityScenarioRule<>(MainActivity.class);
 
-
+    /**
+     * Add a duplicate alarm and make sure only one alarm ends up being added.
+     */
     @Test
     public void createDuplicateAlarm() {
 
@@ -72,6 +73,9 @@ public class WalkingAlarmUITests {
 
     }
 
+    /**
+     * Simple test which will just add an alarm and make sure it ends up in alarm items.
+     */
    @Test
     public void createAlarmAndDelete() {
         onView(withId(R.id.fab)).perform(click());

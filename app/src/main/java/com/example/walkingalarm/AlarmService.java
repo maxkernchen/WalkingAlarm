@@ -10,11 +10,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.AudioAttributes;
-import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
-import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -28,43 +26,82 @@ import com.google.android.gms.fitness.data.DataType;
 import com.google.android.gms.fitness.data.Field;
 import com.google.android.gms.tasks.OnSuccessListener;
 
-import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
+/**
+ * AlarmService class runs continuously  in the background to check for new alarms to be triggered.
+ * Once they are triggered it calls google cloud API for current google fit steps.
+ *
+ * @version 1.0
+ * @author Max Kernchen
+ */
 public class AlarmService extends Service {
+
+    // shared preferences used to store AlarmItems
     private SharedPreferences prefs;
+    // shared preference used to store settings.
     private SharedPreferences settingsPref;
+    // current steps that the user has walked.
     private int currentSteps;
-    private static final String logTag = "AlarmService";
+    // bool to check if any error occurred during the current alarm.
     private boolean errorFoundDuringAlarm = false;
+    // int to store the amount of steps right when the alarm is triggered.
     private int startingSteps = 0;
+    // Calendar used to check if the we find no steps after a certain amount of time
     private Calendar alarmStartMonitor;
+    // seconds to wait before dismissing alarm due to no steps found.
     private static final int SECONDS_TO_WAIT_FOR_STEPS = 30;
-    public static String TOAST_EXTRA_ALARM_SERVICE = "ToastExtraMainActivity";
+    // how often we check if a new alarm needs to be triggered in milliseconds
+    private static final int POLLING_FREQUENCY_MS = 3000;
+    // how long to wait for GOOGLE FIT API call to complete
+    private static final int GOOGLE_FIT_FETCH_TIMEOUT = 5000;
+    // how often we call the google fit API to check for current steps.
+    private static final int STEPS_POLLING_FREQUENCY_MS = 500;
+    // Extra static string for the extra to see a toast to the AlarmReceiver.
+    public static final String TOAST_EXTRA_ALARM_SERVICE = "ToastExtraMainActivity";
+    // Action which will display toast message from AlarmReceiver.
     public final static String TOAST_MESSAGE_FROM_SERVICE_ACTION = "ToastMessageServiceAction";
-
+    // Constant string which is for the required notification that a service is running.
+    public final static String WALKING_ALARM_RUNNING = "Walking Alarm is Running in Background";
+    // log tag for logging.
+    private static final String logTag = "AlarmService";
+    // current name of the alarm.
     private String currentAlarmName = "";
-
+    // current alarm sound to be played
+    private String currentAlarmSoundUri = "";
+    // public boolean which checks if we have started the notification.
     public static boolean notificationTriggered = false;
+    // private boolean that is used if we found the notification is running but has not timed
+    // out yet (no steps found after SECONDS_TO_WAIT_FOR_STEPS).
     private boolean foundNotification = false;
+    // static bool that is used to check if service is running
+    public static boolean isRunning = false;
 
-    private NotificationChannel notificationChannelAlarm;
-
-
+    /**
+     * On start of the service make sure we start based upon API level.
+     * Newer API levels require a notification to show the app is running.
+     * @param intent - intent to start, from Alarm Receiver or Main Activity
+     * @param flags any flags sent
+     * @param startId the unique id for this start request
+     * @return START_STICKY - meaning the service will be restarted if it was stopped due to low
+     * memory. Once additional memory has been found.
+     */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        isRunning = true;
+        this.prefs = getSharedPreferences(getString(R.string.shared_prefs_key),
+                Context.MODE_PRIVATE);
+        this.settingsPref = PreferenceManager.
+                getDefaultSharedPreferences(getApplicationContext());
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Notification notification = setUpNotificationChannelsAndroidO();
             startBackGroundThread();
-
             startForeground(2, notification);
-
-        } else {
-
+        }
+        else {
            Notification notification =  setupNotification();
             startBackGroundThread();
             startForeground(1, notification);
@@ -72,43 +109,66 @@ public class AlarmService extends Service {
         return START_STICKY;
     }
 
+    /**
+     * onBind is not implemented as instead of creating comm channels, I send broadcast intents
+     * to AlarmReceiver. Also the service does not require any external class calls once it is
+     * started.
+     * @param intent intent on binding
+     * @return nothing currently
+     */
     @Override
     public IBinder onBind(Intent intent) {
         // TODO: Return the communication channel to the service.
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
+    /**
+     * Overridden onDestroy is only used for API < 26.
+     * As those API levels require us to stop a service to full dismiss a notification.
+     * Service is started about again about 5 seconds later.
+     */
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        NotificationManager nMgr = (NotificationManager)this.
+                getSystemService(Context.NOTIFICATION_SERVICE);
+        nMgr.cancel(AlarmFullScreen.NOTIFICATION_ID_ALARM);
+        isRunning = false;
+    }
 
+    /**
+     * Helper method which will start our background thread that continuously checks for
+     * any alarm that need to be triggered. Currently checks every 3 seconds for a new alarm, to
+     * prevent battery drain.
+     */
     private void startBackGroundThread(){
         new Thread(new Runnable() {
             public void run() {
-
                 while(true){
+                    // get the alarm items using static preferences
                     List<AlarmItem> items = AlarmListAdapter.getAlarmItemsStatic(prefs);
                     AlarmItem isAlarm = AlarmListAdapter.triggerAlarmStatic(items, prefs);
 
                     if(isAlarm != null){
                         currentAlarmName = isAlarm.getAlarmName();
-                        Log.i("AlarmService", "ALARM TRIGGERED!");
+                        currentAlarmSoundUri = isAlarm.getAlarmSoundUri();
+                        // only need to create notification channel in Oreo or greater
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            createAlarmChannelSoundAndroidO(isAlarm.getSoundUri(),
-                                    isAlarm.getAlarmName());
+                            createAlarmChannelSoundAndroidO();
                         }
-                        else{
-                            //TODO older api call.
-                        }
+
                         toFullScreenAlarm(getStepsToDimiss());
                         // wait some time for notification to reach user.
-                        sleepMainThread(3000);
+                        sleepMainThread(POLLING_FREQUENCY_MS);
                         startingSteps = getCurrentSteps();
                         while(stepsRemainingToDismiss() && !errorFoundDuringAlarm) {
-                            sleepMainThread(500);
+                            sleepMainThread(STEPS_POLLING_FREQUENCY_MS);
                         }
-                        Log.d(logTag,
-                                "Init Steps: " + startingSteps + " Final: " + getCurrentSteps()
-                                );
+
                         // only dismiss for non-errors, error message will pause before exiting.
                         if(!errorFoundDuringAlarm){
+                            // if full screen activity has not been created, then just
+                            // print a toast to let user know the alarm has been dismissed.
                             if(!AlarmFullScreen.isCreated){
                                 stepsDismissedToast(getString(R.string.alarm_dismissed_toast));
                             }
@@ -119,15 +179,19 @@ public class AlarmService extends Service {
                         notificationTriggered = false;
                         foundNotification = false;
 
-
                     }
-                    Log.i("AlarmService", LocalDateTime.now().toString());
-                    sleepMainThread(3000);
+                    sleepMainThread(POLLING_FREQUENCY_MS);
                 }
             }
         }).start();
     }
 
+    /**
+     * Setup a notification channel, this is only needed for API >= 26.
+     * This channel is for the always active notification that is required when running a foreground
+     * service
+     * @return the notification to be set to the service.
+     */
     private Notification setUpNotificationChannelsAndroidO() {
             Notification notification = null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -138,80 +202,84 @@ public class AlarmService extends Service {
 
             chan.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
 
-            NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            NotificationManager manager = (NotificationManager)
+                    getSystemService(Context.NOTIFICATION_SERVICE);
             manager.createNotificationChannel(chan);
 
             NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(
                     this, NOTIFICATION_CHANNEL_ID);
             notification = notificationBuilder.setOngoing(true)
-                    .setContentTitle("App is running in background")
+                    .setContentTitle(WALKING_ALARM_RUNNING)
                     .setPriority(NotificationManager.IMPORTANCE_MIN)
                     .setCategory(Notification.CATEGORY_SERVICE)
                     .build();
 
 
-            this.prefs = getSharedPreferences(getString(R.string.shared_prefs_key),
-                    Context.MODE_PRIVATE);
-            this.settingsPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-
-            AlarmService temp = this;
-
-            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-
-            /*if (notificationManager.getNotificationChannel(AlarmFullScreen.CHANNEL_ID) == null) {
-
-
-
-                NotificationChannel channel = new NotificationChannel(AlarmFullScreen.CHANNEL_ID,
-                        "channel_name", NotificationManager.IMPORTANCE_HIGH);
-                channel.setDescription("channel_description");
-                channel.enableVibration(false);
-
-
-                AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .build();
-
-
-                Uri alarmTone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-
-                channel.setSound(alarmTone, audioAttributes);
-
-                this.notificationChannelAlarm = channel;
-                notificationManager.createNotificationChannel(channel);
-
-
-            }*/
         }
-
         return notification;
     }
-        private Notification setupNotification(){
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
-                    .setContentTitle(getString(R.string.app_name))
-                    .setContentText("WalkingAlarmServiceRunning")
-                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                    .setAutoCancel(true);
 
-            AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .build();
+    /**
+     * Setup notification for always running service when using API < 26.
+     * @return the notification to assign to the foreground service.
+     */
+    private Notification setupNotification(){
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
+                .setContentTitle(getString(R.string.app_name))
+                .setContentText(WALKING_ALARM_RUNNING)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setAutoCancel(true);
 
-            Uri alarmTone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+        return builder.build();
+    }
 
-            builder.setSound(alarmTone);
-            return builder.build();
+    /**
+     * Create a notification channel for API >= 26 which also has a sound linked to it.
+     * This sound is pulled from AlarmItem and is set globally once an Alarm is triggered.
+     * Will also assign vibration to the channel if allowed in settings.
+     */
+    private void createAlarmChannelSoundAndroidO(){
+
+        final AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .build();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+            NotificationChannel channel = new NotificationChannel(AlarmFullScreen.CHANNEL_ID
+                    + currentAlarmName,
+                    AlarmFullScreen.CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
+            channel.setDescription(AlarmFullScreen.CHANNEL_DESCRIPTION);
+            channel.enableVibration(isVibrationEnabled());
+
+            if(isVibrationEnabled())
+                channel.setVibrationPattern(AlarmFullScreen.VIBRATION_PATTERN);
+
+            Uri alarmTone = Uri.parse(currentAlarmSoundUri);
+            channel.setSound(alarmTone, audioAttributes);
+            notificationManager.createNotificationChannel(channel);
+
         }
+    }
 
-    private void toFullScreenAlarm( int steps){
-        Intent intent = new Intent(AlarmFullScreen.FULL_SCREEN_ACTION_ALARM, null, this,
-                AlarmReceiver.class);
+    /**
+     * Will send intent to broadcast receiver to trigger the full screen notification
+     * @param steps steps which are required to dismiss the alarm, added to notification text
+     */
+    private void toFullScreenAlarm(int steps){
+        Intent intent = new Intent(AlarmFullScreen.FULL_SCREEN_ACTION_ALARM, null,
+                this, AlarmReceiver.class);
         intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_NAME, currentAlarmName);
         intent.putExtra(AlarmFullScreen.INTENT_EXTRA_STEPS, steps);
+        // sound URI and vibrate is only used for API < 26 calls.
+        intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_SOUND_URI, currentAlarmSoundUri);
+        intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_VIBRATE_BOOL, isVibrationEnabled());
+
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
+
+        // need to use alarm manager to send intent, else it might be ignore if device is in
+        // deep sleep
         AlarmManager alarmManager = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
         if (alarmManager != null) {
             alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), pendingIntent);
@@ -219,6 +287,11 @@ public class AlarmService extends Service {
 
     }
 
+    /**
+     * Helper method which will dismiss the alarm by sending an intent to the AlarmReceiver.
+     * AlarmReceiver will cancel any notification channels or service based on API level.
+     *
+     */
     private void dismissAlarm(){
         Intent intent = new Intent(AlarmFullScreen.DISMISS_ALARM_ACTION, null, this,
                 AlarmReceiver.class);
@@ -230,10 +303,21 @@ public class AlarmService extends Service {
         } catch (PendingIntent.CanceledException e) {
             e.printStackTrace();
         }
+        // need to stop service for API < 26, because notifications cannot be dismissed
+        // programmatically while a foreground service is running and they were created by it.
+        // Service is started again in AlarmReceiver or AlarmFulLScreen
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            stopService(new Intent(this, AlarmService.class));
+        }
     }
 
+    /**
+     * Helper method which finds the current steps from Google Fit Api.
+     * Is called every 500ms. CountDownLatch to await response from Google Fit async call.
+     * Usually this call is very fast, but if there is no await this method could finish before
+     * current steps is set.
+     */
     private void findCurrentSteps(){
-
         CountDownLatch latch = new CountDownLatch(1);
         GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
         if(account == null){
@@ -245,54 +329,75 @@ public class AlarmService extends Service {
                     .addOnSuccessListener(new OnSuccessListener<DataSet>() {
                         @Override
                         public void onSuccess(DataSet dataSet) {
-
+                            // get just current steps for today we will compare to previous fetch.
                             final int stepsInner = dataSet.getDataPoints().get(0).
                                     getValue(Field.FIELD_STEPS).asInt();
                             setCurrentSteps(stepsInner);
+                            // latch is now okay to release and method can finish.
                             latch.countDown();
 
                         }
                     })
                     .addOnFailureListener(e -> {
+                        // do nothing allow for latch to timeout which will print error message
+                        // and dismiss alarm
                     });
 
             boolean timedOut = false;
             try {
-                timedOut = !latch.await(5000, TimeUnit.MILLISECONDS);
+                timedOut = !latch.await(GOOGLE_FIT_FETCH_TIMEOUT, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
             if(timedOut){
                 errorMessageToast(getString(R.string.could_not_find_steps_error));
             }
-
         }
-
     }
 
+    /**
+     * Get the number of steps we need to dismiss the alarm, default value of 5.
+     * @return the number of steps to dismiss from settings or default of 5.
+     */
     private int getStepsToDimiss(){
         int stepsToDismiss = SettingsActivity.SettingsFragment.MINIMUM_STEPS_TO_DISMISS;
         String stepsString = settingsPref.
-                getString(SettingsActivity.SettingsFragment.STEPS_TO_DISMISS_KEY, "");
+                getString(SettingsActivity.SettingsFragment.STEPS_TO_DISMISS_KEY, "5");
         try{
             stepsToDismiss = Integer.parseInt(stepsString);
         }
         catch(NumberFormatException nfe){
             // do nothing here as value is set to default of 5.
         }
-
         return stepsToDismiss;
     }
 
-
+    /**
+     * set current steps, helper method for findCurrentSteps as we cannot set the value within
+     * a lambda function.
+     * @param currentSteps current steps to set to global variable.
+     */
     private void setCurrentSteps(int currentSteps) {
         this.currentSteps = currentSteps;
     }
-    public int getCurrentSteps() {
+
+    /**
+     * get current steps by calling find current steps first and then returning the global variable
+     * @return current steps as found by google fit API.
+     */
+    private int getCurrentSteps() {
         findCurrentSteps();
         return this.currentSteps;
     }
-    public boolean stepsRemainingToDismiss(){
+
+    /**
+     * Find if there are any steps remaining to dismiss, will only start checking if
+     * the notification has reached the user, this usually takes a few seconds.
+     * If the user has seen the notification but after 30 seconds no steps have been detected,
+     * we will dismiss the alarm.
+     * @return true if steps are left to dismiss alarm, false if no more steps are needed.
+     */
+    private boolean stepsRemainingToDismiss(){
         int stepsToDismiss = getStepsToDimiss();
         int stepsRemaining = stepsToDismiss - (getCurrentSteps() - startingSteps);
         stepsRemaining = Math.max(stepsRemaining, 0);
@@ -303,7 +408,6 @@ public class AlarmService extends Service {
             alarmStartMonitor.add(Calendar.SECOND, SECONDS_TO_WAIT_FOR_STEPS);
             notificationTriggered = false;
             foundNotification = true;
-            Log.i(logTag, "Notification Triggered bool true");
         }
         Calendar now = Calendar.getInstance();
         // if after 30 seconds of the notification reaching the user we still
@@ -313,9 +417,14 @@ public class AlarmService extends Service {
             return false;
         }
         return stepsRemaining > 0;
-
     }
 
+    /**
+     * Send an intent to the AlarmReceiver with the steps remaining to dismiss the alarm.
+     * This will allow us to update the AlarmFullScreen activity in real time with remaining steps
+     * the user has to walk.
+     * @param steps the steps remaining to dismiss the alarm
+     */
     private void updateStepCountAlarmFullScreen(int steps){
 
         Intent intent = new Intent(AlarmFullScreen.WALK_ACTION, null, this,
@@ -331,36 +440,19 @@ public class AlarmService extends Service {
         }
     }
 
-    private void createAlarmChannelSoundAndroidO(String alarmUri, String alarmName){
-
-       final AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .setUsage(AudioAttributes.USAGE_ALARM)
-                .build();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-            NotificationChannel channel = new NotificationChannel(AlarmFullScreen.CHANNEL_ID
-                    + alarmName,
-                    "channel_name", NotificationManager.IMPORTANCE_HIGH);
-            channel.setDescription("channel_description");
-            channel.enableVibration(isVibrationEnabled());
-            if(isVibrationEnabled())
-                channel.setVibrationPattern(new long[] {500, 1000, 500, 1000, 500, 1000});
-
-            Uri alarmTone = Uri.parse(alarmUri);
-
-            channel.setSound(alarmTone, audioAttributes);
-
-            notificationManager.createNotificationChannel(channel);
-
-        }
-    }
-
+    /**
+     * Helper method which gets the vibration setting from the SettingsActivity
+     * @return true or false if vibration is enabled.
+     */
     private boolean isVibrationEnabled(){
         return settingsPref.getBoolean(SettingsActivity.SettingsFragment.VIBRATE_KEY,
                 false);
     }
 
+    /**
+     * Helper method which sleeps main thread, used in main loop for service
+     * @param milliseconds how long to sleep
+     */
     private void sleepMainThread(int milliseconds){
         try{
             Thread.sleep(milliseconds);
@@ -369,30 +461,45 @@ public class AlarmService extends Service {
         }
 
     }
+
+    /**
+     * Helper method which will toast an input string, and then also dismiss the alarm.
+     * Any calls to this method are assumed to be errors.
+     * @param toastText the message to toast
+     */
     private void errorMessageToast(String toastText) {
 
-        Intent intent = new Intent(AlarmService.TOAST_MESSAGE_FROM_SERVICE_ACTION, null, this,
-                AlarmReceiver.class);
+        Intent intent = new Intent(AlarmService.TOAST_MESSAGE_FROM_SERVICE_ACTION, null,
+                this, AlarmReceiver.class);
         intent.putExtra(AlarmService.TOAST_EXTRA_ALARM_SERVICE, toastText);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
+
         try {
             pendingIntent.send();
         } catch (PendingIntent.CanceledException e) {
             e.printStackTrace();
         }
 
+        // wait a little for the notification to reach user, before dismissing alarm
+        sleepMainThread(POLLING_FREQUENCY_MS);
         dismissAlarm();
         this.errorFoundDuringAlarm = true;
 
-
     }
 
+    /**
+     * Helper method which will send a toast message to the user that they walked enough steps
+     * to dismiss the alarm. This is only used if the user did not tap the notification, as a
+     * indicator that the alarm is dismissed. This is not to be used for error messages.
+     * @param toastText the message we will toast to the user.
+     */
     private void stepsDismissedToast(String toastText) {
-
-        Intent intent = new Intent(AlarmService.TOAST_MESSAGE_FROM_SERVICE_ACTION, null, this,
+        Intent intent = new Intent(AlarmService.TOAST_MESSAGE_FROM_SERVICE_ACTION,
+                null, this,
                 AlarmReceiver.class);
         intent.putExtra(AlarmService.TOAST_EXTRA_ALARM_SERVICE, toastText);
+
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
         try {
@@ -400,8 +507,6 @@ public class AlarmService extends Service {
         } catch (PendingIntent.CanceledException e) {
             e.printStackTrace();
         }
-
-
 
     }
 

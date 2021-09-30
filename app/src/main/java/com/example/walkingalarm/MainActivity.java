@@ -45,52 +45,57 @@ import android.widget.Toast;
 
 import java.util.Calendar;
 
+/**
+ * MainActivity for our app, will init our AlarmListAdapter and listeners for the floating action
+ * button. Will also trigger a google sign in first install of the app.
+ *
+ * @version 1.0
+ * @author Max Kernchen
+ */
 public class MainActivity extends AppCompatActivity {
-
-    private AppBarConfiguration appBarConfiguration;
-    private ActivityMainBinding binding;
-
+    /**
+     * Singleton AlarmListAdapter which can be called from other classes, and
+     * is central location for storing our list of Alarms.
+     */
     private static AlarmListAdapter singletonAlarmListAdapter;
-
-    private final static String LOG_TAG = "MainActivity";
+    /**
+     * Request code for our google sign in intent
+     */
     private final static int GOOGLE_SIGN_IN_REQUEST_CODE = 1;
+    /**
+     * ACTION for clicking on the sound picker, this is listened to from the AlarmReceiver
+     */
     public final static String ALARM_SOUND_PICK_ACTION = "AlarmSoundPickAction";
-
-
-
+    /**
+     * global var for storing which item has clicked the sound picker.
+     */
     private int currentItemIndexSoundPick = -1;
+    /**
+     * static bool for check if the system is currently in 24hour time.
+     */
     public static boolean is24HourTime = false;
+    /**
+     * ActivityResultLauncher for the result of the the RingtoneManager intent.
+     */
+    private ActivityResultLauncher<Intent> alarmPickerResultLauncher;
 
-    ActivityResultLauncher<Intent> alarmPickerResultLauncher = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            new ActivityResultCallback<ActivityResult>() {
-                @Override
-                public void onActivityResult(ActivityResult result) {
-                    if (result.getResultCode() == Activity.RESULT_OK) {
-                        final Uri uri = result.getData().getParcelableExtra
-                                (RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
-
-                        updateAlarmSoundForCurrentItem(uri);
-
-
-                    }
-                }
-            });
-
-
-    public static GoogleSignInAccount account;
-
+    /**
+     * OnCreate which will inflate our layout and assign any listeners.
+     * At the end will also trigger a google sign intent if the application has been installed
+     * for the first time
+     * @param savedInstanceState no saved bundles used here
+     */
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        com.example.walkingalarm.databinding.ActivityMainBinding binding =
+                ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         setSupportActionBar(binding.toolbar);
-
+        // find shared prefs to assign to new AlarmListAdapter
         SharedPreferences prefs = this.getSharedPreferences(getString(R.string.shared_prefs_key),
                 Context.MODE_PRIVATE);
-
 
         RecyclerView rvAlarmListView = (RecyclerView) findViewById(R.id.alarmListView);
         // disable animations on changes, else it will flash toggle buttons for every update.
@@ -98,17 +103,13 @@ public class MainActivity extends AppCompatActivity {
 
         AlarmListAdapter alarmListAdapter = new AlarmListAdapter(
                 prefs);
-
         rvAlarmListView.setAdapter(alarmListAdapter);
         rvAlarmListView.setLayoutManager(new LinearLayoutManager(this));
-
-
+        // register broadcast receiver for triggering alarm sound picker.
         registerReceiver();
-        // time picker dialog
 
         is24HourTime = DateFormat.is24HourFormat(this);
-
-
+        // add listener to floating action button which will pop up a TimePickerDialog.
         binding.fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -132,30 +133,54 @@ public class MainActivity extends AppCompatActivity {
                         }, hour, minutes, is24HourTime);
                 picker.setCanceledOnTouchOutside(false);
                 picker.show();
-
             }
         });
+        // handle response from sound picker intent.
+        alarmPickerResultLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                new ActivityResultCallback<ActivityResult>() {
+                    @Override
+                    public void onActivityResult(ActivityResult result) {
+                        if (result.getResultCode() == Activity.RESULT_OK) {
+                            final Uri uri = result.getData().getParcelableExtra
+                                    (RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
+                            updateAlarmSoundForCurrentItem(uri);
+                        }
+                    }
+                });
 
         singletonAlarmListAdapter = alarmListAdapter;
-        this.setThemeOnStart();
-        Intent myService = new Intent(this, AlarmService.class);
 
+        // set theme, start service, and sign into google
+        this.setThemeOnStart();
+
+        Intent myService = new Intent(this, AlarmService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
            startForegroundService(myService);
         } else {
             startService(myService);
         }
         googleSignIn();
-
     }
 
+    /**
+     * The Uri we found from the RingtoneManager intent result, to be assign to an alarm item
+     * @param alarmUri the Uri to assign to a alarm item.
+     */
     private void updateAlarmSoundForCurrentItem (Uri alarmUri){
-        Ringtone ringtone = RingtoneManager.getRingtone(this, alarmUri);
-        String alarmName = ringtone.getTitle(this);
-        singletonAlarmListAdapter.updateAlarmSound(currentItemIndexSoundPick, alarmUri,
-                alarmName);
+        if(alarmUri != null) {
+            Ringtone ringtone = RingtoneManager.getRingtone(this, alarmUri);
+            String alarmName = ringtone.getTitle(this);
+            singletonAlarmListAdapter.updateAlarmSound(currentItemIndexSoundPick, alarmUri,
+                    alarmName);
+        }
     }
 
+    /**
+     * inflates the menu for settings
+     * @param menu Menu to inflate
+     * @return - true to display menu
+     */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -163,6 +188,12 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    /**
+     * when an item is select from the menu, in this case there is also one item.
+     * So it will send us to the SettingsActivity
+     * @param item the menu selected
+     * @return true to consume event.
+     */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
@@ -172,22 +203,28 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
+            Intent settingsIntent = new Intent(MainActivity.this,
+                    SettingsActivity.class);
             startActivity(settingsIntent);
             return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 
-
+    /**
+     * helper method which is public and static, will allow any class to get the
+     * singletonAlarmListAdapter.
+     * @return singletonAlarmListAdapter
+     */
     public static AlarmListAdapter getAlarmListAdapterInstance(){
         return singletonAlarmListAdapter;
     }
 
-
-    public void googleSignIn(){
-
+    /**
+     * Sign into google fit, we only need read access to the google fit.
+     * This will
+     */
+    private void googleSignIn(){
         final FitnessOptions fitnessOptions = FitnessOptions.builder()
                 .addDataType(DataType.TYPE_STEP_COUNT_CUMULATIVE, FitnessOptions.ACCESS_READ)
                 .addDataType(DataType.TYPE_STEP_COUNT_DELTA, FitnessOptions.ACCESS_READ)
@@ -201,32 +238,29 @@ public class MainActivity extends AppCompatActivity {
             GoogleSignIn.requestPermissions(this, GOOGLE_SIGN_IN_REQUEST_CODE,
                     account, fitnessOptions);
         }
-
-
     }
 
+    /**
+     * register a BroadcastReceiver which will trigger a RingtoneManager dialog to allow
+     * the user to select a alarm sound, this is sent from AlarmListAdapter.
+     */
     private void registerReceiver() {
         BroadcastReceiver mainActivityReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 if (intent.getAction().equals(MainActivity.ALARM_SOUND_PICK_ACTION)) {
-
                     int itemIndex =
                             intent.getIntExtra(AlarmListAdapter.INTENT_EXTRA_INDEX_ITEM,
                                     -1);
                     if (itemIndex >= 0) {
-
                         final Intent ringtone = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
                         ringtone.putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI,
                                 RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM));
+                        // store which item we are changing the sound of.
                         currentItemIndexSoundPick = itemIndex;
-
                         alarmPickerResultLauncher.launch(ringtone);
                     }
-
                 }
-
-
             }
         };
         IntentFilter filter = new IntentFilter();
@@ -234,6 +268,9 @@ public class MainActivity extends AppCompatActivity {
         registerReceiver(mainActivityReceiver, filter);
     }
 
+    /**
+     * Set dark or light theme on start up based upon settings.
+     */
     private void setThemeOnStart(){
         SharedPreferences prefs =
                 PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
@@ -244,19 +281,25 @@ public class MainActivity extends AppCompatActivity {
         else
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
 
-
     }
 
+    /**
+     * Overridden onActivityResult which will handle the result from the google sign
+     * @param requestCode request code from google sign in
+     * @param resultCode result code, not used here
+     * @param data data used to get the account from the intent result
+     */
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
         if(requestCode == GOOGLE_SIGN_IN_REQUEST_CODE){
             Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
             try {
-                account = task.getResult(ApiException.class);
+                GoogleSignInAccount account = task.getResult(ApiException.class);
             } catch (ApiException e) {
-                e.printStackTrace();
+                Toast.makeText(this, R.string.could_not_find_account_error,
+                        Toast.LENGTH_SHORT).show();
             }
         }
     }
