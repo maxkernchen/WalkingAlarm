@@ -110,8 +110,10 @@ public class AlarmReceiver extends BroadcastReceiver {
             }
             // this allows us to send a toast from the service class, usually for error messages.
             case AlarmService.TOAST_MESSAGE_FROM_SERVICE_ACTION: {
+
                 Toast.makeText(context, intent.getStringExtra(AlarmService.TOAST_EXTRA_ALARM_SERVICE
                 ), Toast.LENGTH_LONG).show();
+
                 break;
             }
         }

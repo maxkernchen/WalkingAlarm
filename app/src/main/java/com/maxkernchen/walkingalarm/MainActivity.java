@@ -63,10 +63,6 @@ public class MainActivity extends AppCompatActivity {
      */
     private final static int GOOGLE_SIGN_IN_REQUEST_CODE = 1;
     /**
-     * ACTION for clicking on the sound picker, this is listened to from the AlarmReceiver
-     */
-    public final static String ALARM_SOUND_PICK_ACTION = "AlarmSoundPickAction";
-    /**
      * global var for storing which item has clicked the sound picker.
      */
     public static int currentItemIndexSoundPick = -1;
