@@ -69,15 +69,16 @@ public class MainActivity extends AppCompatActivity {
     /**
      * global var for storing which item has clicked the sound picker.
      */
-    private int currentItemIndexSoundPick = -1;
+    public static int currentItemIndexSoundPick = -1;
     /**
      * static bool for check if the system is currently in 24hour time.
      */
     public static boolean is24HourTime = false;
     /**
      * ActivityResultLauncher for the result of the the RingtoneManager intent.
+     * This is static to allow for the AlarmListAdapter to call it.
      */
-    private ActivityResultLauncher<Intent> alarmPickerResultLauncher;
+    public static ActivityResultLauncher<Intent> alarmPickerResultLauncher;
 
     /**
      * OnCreate which will inflate our layout and assign any listeners.
@@ -105,8 +106,7 @@ public class MainActivity extends AppCompatActivity {
                 prefs);
         rvAlarmListView.setAdapter(alarmListAdapter);
         rvAlarmListView.setLayoutManager(new LinearLayoutManager(this));
-        // register broadcast receiver for triggering alarm sound picker.
-        registerReceiver();
+
 
         is24HourTime = DateFormat.is24HourFormat(this);
         // add listener to floating action button which will pop up a TimePickerDialog.
@@ -240,33 +240,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * register a BroadcastReceiver which will trigger a RingtoneManager dialog to allow
-     * the user to select a alarm sound, this is sent from AlarmListAdapter.
-     */
-    private void registerReceiver() {
-        BroadcastReceiver mainActivityReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                if (intent.getAction().equals(MainActivity.ALARM_SOUND_PICK_ACTION)) {
-                    int itemIndex =
-                            intent.getIntExtra(AlarmListAdapter.INTENT_EXTRA_INDEX_ITEM,
-                                    -1);
-                    if (itemIndex >= 0) {
-                        final Intent ringtone = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
-                        ringtone.putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI,
-                                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM));
-                        // store which item we are changing the sound of.
-                        currentItemIndexSoundPick = itemIndex;
-                        alarmPickerResultLauncher.launch(ringtone);
-                    }
-                }
-            }
-        };
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(MainActivity.ALARM_SOUND_PICK_ACTION);
-        registerReceiver(mainActivityReceiver, filter);
-    }
 
     /**
      * Set dark or light theme on start up based upon settings.

@@ -105,18 +105,7 @@ public class AlarmReceiver extends BroadcastReceiver {
                         if(!AlarmService.isRunning)
                             context.startService(new Intent(context, AlarmService.class));
                     }
-
-
                 }
-
-                break;
-            }
-            // action for picking the alarm sound from the main activity.
-            case MainActivity.ALARM_SOUND_PICK_ACTION: {
-                Intent in = new Intent(MainActivity.ALARM_SOUND_PICK_ACTION);
-                in.putExtra(AlarmListAdapter.INTENT_EXTRA_INDEX_ITEM,
-                        intent.getIntExtra(AlarmListAdapter.INTENT_EXTRA_INDEX_ITEM, -1));
-                context.sendBroadcast(in);
                 break;
             }
             // this allows us to send a toast from the service class, usually for error messages.

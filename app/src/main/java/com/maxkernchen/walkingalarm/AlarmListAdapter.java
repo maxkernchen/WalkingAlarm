@@ -1,9 +1,11 @@
 package com.maxkernchen.walkingalarm;
 
+import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,6 +14,10 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.ToggleButton;
+
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.recyclerview.widget.RecyclerView;
@@ -333,7 +339,6 @@ public class AlarmListAdapter extends
             MaterialButton btn = (MaterialButton) alarmViewHolder.
                     itemView.findViewById(R.id.alarm_delete_button);
             btn.setOnClickListener(l -> {
-                System.out.println(String.valueOf(alarmViewHolder.getAdapterPosition()));
                 deleteAlarmItem(alarmViewHolder.getAdapterPosition());
             });
             // set expanded listener
@@ -372,7 +377,7 @@ public class AlarmListAdapter extends
             // As we have to trigger this intent from the Main Activity, we send a broadcast
             // to MainActivity's broadcast receivers.
             alarmSoundPicker.setOnClickListener(l -> {
-                Intent intent = new Intent(MainActivity.ALARM_SOUND_PICK_ACTION, null,
+                /*Intent intent = new Intent(MainActivity.ALARM_SOUND_PICK_ACTION, null,
                         itemView.getContext(),
                         AlarmReceiver.class);
                 int position = alarmViewHolder.getAdapterPosition();
@@ -384,7 +389,17 @@ public class AlarmListAdapter extends
                     pendingIntent.send();
                 } catch (PendingIntent.CanceledException e) {
                     e.printStackTrace();
-                }
+                }*/
+
+                MainActivity.currentItemIndexSoundPick = alarmViewHolder.getAdapterPosition();
+
+                Intent alarmSoundIntent = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
+                alarmSoundIntent.putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI,
+                        RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM));
+
+                MainActivity.alarmPickerResultLauncher.launch(alarmSoundIntent);
+
+
             });
         }
 
