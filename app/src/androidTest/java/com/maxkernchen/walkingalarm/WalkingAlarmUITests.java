@@ -1,4 +1,4 @@
-package com.example.walkingalarm;
+package com.maxkernchen.walkingalarm;
 
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
@@ -16,9 +16,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import androidx.test.espresso.contrib.PickerActions;
+import androidx.test.espresso.matcher.ViewMatchers;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
+
 
 import java.util.Calendar;
 
@@ -49,7 +51,7 @@ public class WalkingAlarmUITests {
 
         for(int i = 0; i < 2; i++) {
 
-            onView(withId(R.id.fab)).perform(click());
+            onView(ViewMatchers.withId(R.id.fab)).perform(click());
 
             onView(isAssignableFrom(TimePicker.class)).perform(
                     PickerActions.setTime(

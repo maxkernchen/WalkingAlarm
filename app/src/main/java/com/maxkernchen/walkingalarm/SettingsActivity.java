@@ -1,4 +1,4 @@
-package com.example.walkingalarm;
+package com.maxkernchen.walkingalarm;
 
 
 import android.content.SharedPreferences;
@@ -15,6 +15,7 @@ import androidx.appcompat.app.AppCompatDelegate;
 import androidx.preference.EditTextPreference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
+
 
 /**
  * SettingsActivity which holds all our settings, right now there are 3:

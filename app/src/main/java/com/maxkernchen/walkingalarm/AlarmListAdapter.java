@@ -1,4 +1,4 @@
-package com.example.walkingalarm;
+package com.maxkernchen.walkingalarm;
 
 import android.app.PendingIntent;
 import android.content.Context;
@@ -15,6 +15,8 @@ import android.widget.ToggleButton;
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.maxkernchen.walkingalarm.R;
 import com.google.android.material.button.MaterialButton;
 import com.google.gson.Gson;
 import java.time.DayOfWeek;

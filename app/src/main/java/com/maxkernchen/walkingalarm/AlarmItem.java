@@ -1,4 +1,4 @@
-package com.example.walkingalarm;
+package com.maxkernchen.walkingalarm;
 import android.media.RingtoneManager;
 import androidx.annotation.Nullable;
 import java.text.SimpleDateFormat;

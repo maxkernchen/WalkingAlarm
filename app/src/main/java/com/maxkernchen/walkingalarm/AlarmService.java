@@ -1,4 +1,4 @@
-package com.example.walkingalarm;
+package com.maxkernchen.walkingalarm;
 
 import android.app.AlarmManager;
 import android.app.Notification;
@@ -330,10 +330,15 @@ public class AlarmService extends Service {
                         @Override
                         public void onSuccess(DataSet dataSet) {
                             // get just current steps for today we will compare to previous fetch.
-                            final int stepsInner = dataSet.getDataPoints().get(0).
-                                    getValue(Field.FIELD_STEPS).asInt();
-                            setCurrentSteps(stepsInner);
-                            // latch is now okay to release and method can finish.
+                            if(dataSet.getDataPoints().size() > 0) {
+                                final int stepsInner = dataSet.getDataPoints().get(0).
+                                        getValue(Field.FIELD_STEPS).asInt();
+                                setCurrentSteps(stepsInner);
+                                // latch is now okay to release and method can finish.
+                            }
+                            else{
+                                errorMessageToast(getString(R.string.could_not_find_steps_error));
+                            }
                             latch.countDown();
 
                         }

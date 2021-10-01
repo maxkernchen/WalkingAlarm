@@ -1,4 +1,4 @@
-package com.example.walkingalarm;
+package com.maxkernchen.walkingalarm;
 
 import android.app.Activity;
 import android.app.TimePickerDialog;
@@ -13,6 +13,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 
+import com.maxkernchen.walkingalarm.R;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.common.api.ApiException;
@@ -31,12 +32,11 @@ import android.text.format.DateFormat;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatDelegate;
-import androidx.navigation.ui.AppBarConfiguration;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.walkingalarm.databinding.ActivityMainBinding;
+import com.maxkernchen.walkingalarm.databinding.ActivityMainBinding;
 
 import android.view.Menu;
 import android.view.MenuItem;
@@ -89,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        com.example.walkingalarm.databinding.ActivityMainBinding binding =
+        ActivityMainBinding binding =
                 ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         setSupportActionBar(binding.toolbar);

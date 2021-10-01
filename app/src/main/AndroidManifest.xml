@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.walkingalarm">
+    package="com.maxkernchen.walkingalarm">
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -16,23 +16,23 @@
         android:roundIcon="@mipmap/ic_walking_alarm_round"
         android:theme="@style/Theme.WalkingAlarm">
         <activity
-            android:name=".SettingsActivity"
+            android:name="com.maxkernchen.walkingalarm.SettingsActivity"
             android:exported="false"
             android:label="@string/title_activity_settings" />
         <activity
-            android:name=".AlarmFullScreen"
+            android:name="com.maxkernchen.walkingalarm.AlarmFullScreen"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:exported="false"
             android:label="@string/title_activity_alarm_full_screen"
             android:theme="@style/Theme.WalkingAlarm.Fullscreen" />
 
         <service
-            android:name=".AlarmService"
+            android:name="com.maxkernchen.walkingalarm.AlarmService"
             android:enabled="true"
             android:exported="false" />
 
         <receiver
-            android:name=".AlarmReceiver"
+            android:name="com.maxkernchen.walkingalarm.AlarmReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
@@ -42,7 +42,7 @@
         </receiver>
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.maxkernchen.walkingalarm.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.WalkingAlarm.NoActionBar">
