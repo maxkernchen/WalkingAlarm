@@ -13,6 +13,7 @@ import android.media.AudioAttributes;
 import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
+import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -30,6 +31,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
 /**
  * AlarmService class runs continuously  in the background to check for new alarms to be triggered.
  * Once they are triggered it calls google cloud API for current google fit steps.
@@ -98,14 +100,14 @@ public class AlarmService extends Service {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Notification notification = setUpNotificationChannelsAndroidO();
-            startBackGroundThread();
             startForeground(2, notification);
         }
         else {
            Notification notification =  setupNotification();
-            startBackGroundThread();
             startForeground(1, notification);
         }
+
+        startBackGroundThread();
         return START_STICKY;
     }
 
@@ -158,6 +160,8 @@ public class AlarmService extends Service {
                         }
 
                         toFullScreenAlarm(getStepsToDimiss());
+                        Log.i("AlarmService", Calendar.getInstance().getTime().toString()
+                                + "Triggered Alarm");
                         // wait some time for notification to reach user.
                         sleepMainThread(POLLING_FREQUENCY_MS);
                         startingSteps = getCurrentSteps();
@@ -181,6 +185,8 @@ public class AlarmService extends Service {
 
                     }
                     sleepMainThread(POLLING_FREQUENCY_MS);
+                    Log.i("AlarmService", Calendar.getInstance().getTime().toString() + "" +
+                            "Service running");
                 }
             }
         }).start();
@@ -282,8 +288,11 @@ public class AlarmService extends Service {
         // deep sleep
         AlarmManager alarmManager = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
         if (alarmManager != null) {
-            alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), pendingIntent);
+            alarmManager.setAndAllowWhileIdle
+                    (AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), pendingIntent);
         }
+        Log.i("AlarmService", Calendar.getInstance().getTime().toString()
+                + "Sent Alarm");
 
     }
 
