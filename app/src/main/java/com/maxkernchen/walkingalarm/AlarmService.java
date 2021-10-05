@@ -83,7 +83,7 @@ public class AlarmService extends Service {
     public static boolean isRunning = false;
     // private wake lock to prevent service from being slept during doze mode.
     private PowerManager.WakeLock wakeLock;
-    // wake log tag for AlarmService
+    // wake lock tag for AlarmService
     private static final String WAKE_LOCK_TAG_ALARM_SERVICE = "AlarmService:WakeLock";
 
 
