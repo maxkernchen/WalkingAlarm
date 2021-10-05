@@ -13,6 +13,7 @@ import android.media.AudioAttributes;
 import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
@@ -80,6 +81,11 @@ public class AlarmService extends Service {
     private boolean foundNotification = false;
     // static bool that is used to check if service is running
     public static boolean isRunning = false;
+    // private wake lock to prevent service from being slept during doze mode.
+    private PowerManager.WakeLock wakeLock;
+    // wake log tag for AlarmService
+    private static final String WAKE_LOCK_TAG_ALARM_SERVICE = "AlarmService:WakeLock";
+
 
     /**
      * On start of the service make sure we start based upon API level.
@@ -98,12 +104,17 @@ public class AlarmService extends Service {
         this.settingsPref = PreferenceManager.
                 getDefaultSharedPreferences(getApplicationContext());
 
+        PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+        wakeLock =
+                pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKE_LOCK_TAG_ALARM_SERVICE);
+        wakeLock.acquire();
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Notification notification = setUpNotificationChannelsAndroidO();
             startForeground(2, notification);
         }
         else {
-           Notification notification =  setupNotification();
+            Notification notification =  setupNotification();
             startForeground(1, notification);
         }
 
@@ -132,6 +143,7 @@ public class AlarmService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        wakeLock.release();
         NotificationManager nMgr = (NotificationManager)this.
                 getSystemService(Context.NOTIFICATION_SERVICE);
         nMgr.cancel(AlarmFullScreen.NOTIFICATION_ID_ALARM);
@@ -146,47 +158,64 @@ public class AlarmService extends Service {
     private void startBackGroundThread(){
         new Thread(new Runnable() {
             public void run() {
-                while(true){
-                    // get the alarm items using static preferences
-                    List<AlarmItem> items = AlarmListAdapter.getAlarmItemsStatic(prefs);
-                    AlarmItem isAlarm = AlarmListAdapter.triggerAlarmStatic(items, prefs);
+                try {
+                    while (wakeLock.isHeld()) {
+                        // get the alarm items using static preferences
+                        List<AlarmItem> items = AlarmListAdapter.getAlarmItemsStatic(prefs);
+                        AlarmItem isAlarm = AlarmListAdapter.triggerAlarmStatic(items, prefs);
 
-                    if(isAlarm != null){
-                        currentAlarmName = isAlarm.getAlarmName();
-                        currentAlarmSoundUri = isAlarm.getAlarmSoundUri();
-                        // only need to create notification channel in Oreo or greater
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            createAlarmChannelSoundAndroidO();
-                        }
-
-                        toFullScreenAlarm(getStepsToDimiss());
-                        Log.i("AlarmService", Calendar.getInstance().getTime().toString()
-                                + "Triggered Alarm");
-                        // wait some time for notification to reach user.
-                        sleepMainThread(POLLING_FREQUENCY_MS);
-                        startingSteps = getCurrentSteps();
-                        while(stepsRemainingToDismiss() && !errorFoundDuringAlarm) {
-                            sleepMainThread(STEPS_POLLING_FREQUENCY_MS);
-                        }
-
-                        // only dismiss for non-errors, error message will pause before exiting.
-                        if(!errorFoundDuringAlarm){
-                            // if full screen activity has not been created, then just
-                            // print a toast to let user know the alarm has been dismissed.
-                            if(!AlarmFullScreen.isCreated){
-                                stepsDismissedToast(getString(R.string.alarm_dismissed_toast));
+                        if (isAlarm != null) {
+                            currentAlarmName = isAlarm.getAlarmName();
+                            currentAlarmSoundUri = isAlarm.getAlarmSoundUri();
+                            // only need to create notification channel in Oreo or greater
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                createAlarmChannelSoundAndroidO();
                             }
-                            dismissAlarm();
+
+                            toFullScreenAlarm(getStepsToDimiss());
+                            Log.i("AlarmService", Calendar.getInstance().getTime().toString()
+                                    + "Triggered Alarm");
+                            // wait some time for notification to reach user.
+                            sleepMainThread(POLLING_FREQUENCY_MS);
+                            startingSteps = getCurrentSteps();
+                            while (stepsRemainingToDismiss() && !errorFoundDuringAlarm) {
+                                sleepMainThread(STEPS_POLLING_FREQUENCY_MS);
+                            }
+
+                            // only dismiss for non-errors, error message will pause before exiting.
+                            if (!errorFoundDuringAlarm) {
+                                // if full screen activity has not been created, then just
+                                // print a toast to let user know the alarm has been dismissed.
+                                if (!AlarmFullScreen.isCreated) {
+                                    stepsDismissedToast(getString(R.string.alarm_dismissed_toast));
+                                }
+                                dismissAlarm();
+                            }
+                            errorFoundDuringAlarm = false;
+                            currentAlarmName = "";
+                            notificationTriggered = false;
+                            foundNotification = false;
+
                         }
-                        errorFoundDuringAlarm = false;
-                        currentAlarmName = "";
-                        notificationTriggered = false;
-                        foundNotification = false;
+                        sleepMainThread(POLLING_FREQUENCY_MS);
+                        Log.i("AlarmService", Calendar.getInstance().getTime().toString() + "" +
+                                "Service running");
+                    }
+                    if (!wakeLock.isHeld()) {
+                        Log.i(logTag, Calendar.getInstance().getTime().toString() + "" +
+                                "Wake Lock was released!!!");
+                        wakeLock.acquire();
+                        run();
+                    }
+                } catch (Exception e) {
+                    Log.i(logTag,"Exception during service!!! - " + e.getMessage());
+                    if (!wakeLock.isHeld()) {
+                        Log.i(logTag, Calendar.getInstance().getTime().toString() + "" +
+                                "Wake Lock was released!!!");
+                        wakeLock.acquire();
 
                     }
-                    sleepMainThread(POLLING_FREQUENCY_MS);
-                    Log.i("AlarmService", Calendar.getInstance().getTime().toString() + "" +
-                            "Service running");
+                    run();
                 }
             }
         }).start();

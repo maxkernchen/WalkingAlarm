@@ -149,12 +149,13 @@ public class MainActivity extends AppCompatActivity {
 
         // set theme, start service, and sign into google
         this.setThemeOnStart();
-
-        Intent myService = new Intent(this, AlarmService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-           startForegroundService(myService);
-        } else {
-            startService(myService);
+        if(!AlarmService.isRunning) {
+            Intent myService = new Intent(this, AlarmService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(myService);
+            } else {
+                startService(myService);
+            }
         }
         googleSignIn();
     }
