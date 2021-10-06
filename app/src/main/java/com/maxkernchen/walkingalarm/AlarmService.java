@@ -36,7 +36,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * AlarmService class runs continuously  in the background to check for new alarms to be triggered.
  * Once they are triggered it calls google cloud API for current google fit steps.
- *
+ * Requires wake lock when testing with Google Pixel 4a, foreground service does eventually
+ * not execute due to doze mode. Wake Lock keeps the service running every polling interval.
  * @version 1.0
  * @author Max Kernchen
  */
@@ -55,11 +56,11 @@ public class AlarmService extends Service {
     // Calendar used to check if the we find no steps after a certain amount of time
     private Calendar alarmStartMonitor;
     // seconds to wait before dismissing alarm due to no steps found.
-    private static final int SECONDS_TO_WAIT_FOR_STEPS = 30;
+    private static final int SECONDS_TO_WAIT_FOR_STEPS = 60;
     // how often we check if a new alarm needs to be triggered in milliseconds
     private static final int POLLING_FREQUENCY_MS = 3000;
-    // how long to wait for GOOGLE FIT API call to complete
-    private static final int GOOGLE_FIT_FETCH_TIMEOUT = 5000;
+    // how long to wait in ms for GOOGLE FIT API call to complete
+    private static final int GOOGLE_FIT_FETCH_TIMEOUT = 10000;
     // how often we call the google fit API to check for current steps.
     private static final int STEPS_POLLING_FREQUENCY_MS = 500;
     // Extra static string for the extra to see a toast to the AlarmReceiver.
@@ -85,7 +86,10 @@ public class AlarmService extends Service {
     private PowerManager.WakeLock wakeLock;
     // wake lock tag for AlarmService
     private static final String WAKE_LOCK_TAG_ALARM_SERVICE = "AlarmService:WakeLock";
-
+    // notification channel id for the service notification
+    private static final String NOTIFICATION_CHANNEL_ID = "AlarmServiceNotificationChannel";
+    // notification channel name for the service notification
+    private static final String NOTIFICATION_CHANNEL_NAME = "AlarmServiceNotificationName";
 
     /**
      * On start of the service make sure we start based upon API level.
@@ -173,8 +177,6 @@ public class AlarmService extends Service {
                             }
 
                             toFullScreenAlarm(getStepsToDimiss());
-                            Log.i("AlarmService", Calendar.getInstance().getTime().toString()
-                                    + "Triggered Alarm");
                             // wait some time for notification to reach user.
                             sleepMainThread(POLLING_FREQUENCY_MS);
                             startingSteps = getCurrentSteps();
@@ -198,22 +200,15 @@ public class AlarmService extends Service {
 
                         }
                         sleepMainThread(POLLING_FREQUENCY_MS);
-                        Log.i("AlarmService", Calendar.getInstance().getTime().toString() + "" +
-                                "Service running");
+
                     }
                     if (!wakeLock.isHeld()) {
-                        Log.i(logTag, Calendar.getInstance().getTime().toString() + "" +
-                                "Wake Lock was released!!!");
                         wakeLock.acquire();
                         run();
                     }
                 } catch (Exception e) {
-                    Log.i(logTag,"Exception during service!!! - " + e.getMessage());
                     if (!wakeLock.isHeld()) {
-                        Log.i(logTag, Calendar.getInstance().getTime().toString() + "" +
-                                "Wake Lock was released!!!");
                         wakeLock.acquire();
-
                     }
                     run();
                 }
@@ -230,10 +225,8 @@ public class AlarmService extends Service {
     private Notification setUpNotificationChannelsAndroidO() {
             Notification notification = null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            String NOTIFICATION_CHANNEL_ID = "AlarmService";
-            String channelName = "Background Service";
-            NotificationChannel chan = new NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName,
-                    NotificationManager.IMPORTANCE_NONE);
+            NotificationChannel chan = new NotificationChannel(NOTIFICATION_CHANNEL_ID,
+                    NOTIFICATION_CHANNEL_NAME, NotificationManager.IMPORTANCE_NONE);
 
             chan.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
 
@@ -248,7 +241,6 @@ public class AlarmService extends Service {
                     .setPriority(NotificationManager.IMPORTANCE_MIN)
                     .setCategory(Notification.CATEGORY_SERVICE)
                     .build();
-
 
         }
         return notification;
@@ -320,8 +312,7 @@ public class AlarmService extends Service {
             alarmManager.setAndAllowWhileIdle
                     (AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), pendingIntent);
         }
-        Log.i("AlarmService", Calendar.getInstance().getTime().toString()
-                + "Sent Alarm");
+
 
     }
 
@@ -453,7 +444,7 @@ public class AlarmService extends Service {
             foundNotification = true;
         }
         Calendar now = Calendar.getInstance();
-        // if after 30 seconds of the notification reaching the user we still
+        // if after 60 seconds of the notification reaching the user we still
         // have not detected any steps, just dismiss the alarm.
         if(foundNotification && now.after(alarmStartMonitor) && stepsRemaining == stepsToDismiss){
             errorMessageToast(getString(R.string.could_not_find_steps_error));
