@@ -11,7 +11,7 @@ import androidx.core.app.NotificationManagerCompat;
  * AlarmReceiver class which listens to broadcast coming from AlarmService
  * and then sends them to classes with more UI exposure to change elements in real time.
  * Also is used to trigger the alarm service on phone reboot.
- * @version 1.0
+ * @version 1.23
  * @author Max Kernchen
  */
 

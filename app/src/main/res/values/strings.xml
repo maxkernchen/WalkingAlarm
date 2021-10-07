@@ -12,6 +12,7 @@
     <string name="place_holder_alarm_name">Place Holder Alarm</string>
     <string name="select_alarm_sound">Select Alarm Sound</string>
     <string name="alarm_steps_remaining">Steps Remaining To Dismiss: %1$d</string>
+    <string name="alarm_full_screen_loading">Retrieving Steps from Google Fit…</string>
     <string name="alarm_dismissed_toast">Walking Alarm Dismissed</string>
     <string name="alarm_notification_text">Alarm - %1$s </string>
     <string name="alarm_notification_subtext">Walk %1$d Steps, Tap for Progress</string>

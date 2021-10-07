@@ -33,7 +33,7 @@ import com.maxkernchen.walkingalarm.databinding.ActivityAlarmFullScreenBinding;
  *
  * The other half contains a broadcast receiver to dismiss or update the full screen UI elements.
  *
- * @version 1.0
+ * @version 1.23
  * @author Max Kernchen
  */
 public class AlarmFullScreen extends AppCompatActivity {
@@ -200,7 +200,6 @@ public class AlarmFullScreen extends AppCompatActivity {
                 | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         mVisible = true;
-        mControlsView = binding.fullscreenContentControls;
         mContentView = binding.fullscreenContent;
 
         // Set up the user interaction to manually show or hide the system UI.

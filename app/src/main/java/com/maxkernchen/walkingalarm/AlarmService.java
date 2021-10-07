@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
  * Once they are triggered it calls google cloud API for current google fit steps.
  * Requires wake lock when testing with Google Pixel 4a, foreground service does eventually
  * not execute due to doze mode. Wake Lock keeps the service running every polling interval.
- * @version 1.0
+ * @version 1.23
  * @author Max Kernchen
  */
 public class AlarmService extends Service {
@@ -56,7 +56,7 @@ public class AlarmService extends Service {
     // Calendar used to check if the we find no steps after a certain amount of time
     private Calendar alarmStartMonitor;
     // seconds to wait before dismissing alarm due to no steps found.
-    private static final int SECONDS_TO_WAIT_FOR_STEPS = 60;
+    private static final int SECONDS_TO_WAIT_FOR_STEPS = 45;
     // how often we check if a new alarm needs to be triggered in milliseconds
     private static final int POLLING_FREQUENCY_MS = 3000;
     // how long to wait in ms for GOOGLE FIT API call to complete
