@@ -15,6 +15,6 @@
         android:text="@string/alarm_full_screen_loading"
         android:textColor="?attr/fullscreenTextColor"
         android:textSize="50sp"
-        android:alpha="0.4"
+        android:alpha="0.6"
         android:textStyle="bold" />
 </FrameLayout>

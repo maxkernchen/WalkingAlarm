@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.util.Log;
 import android.widget.Toast;
 import androidx.core.app.NotificationManagerCompat;
 
@@ -27,6 +28,7 @@ public class AlarmReceiver extends BroadcastReceiver {
      */
     @Override
     public void onReceive(Context context, Intent intent) {
+        Log.i(logTag, "Intent Action: " + intent.getAction());
         switch (intent.getAction()) {
             // once the phone is rebooted we want to start the alarm service.
             case Intent.ACTION_BOOT_COMPLETED: {
