@@ -55,8 +55,11 @@ public class AlarmService extends Service {
     private int startingSteps = 0;
     // Calendar used to check if the we find no steps after a certain amount of time
     private Calendar alarmStartMonitor;
+    // Calendar used to check if we find some steps but not all to dismiss.
+    // This is used to eventually dismiss the alarm so it does not hang forever.
+    private Calendar alarmTimeOutMonitor;
     // seconds to wait before dismissing alarm due to no steps found.
-    private static final int SECONDS_TO_WAIT_FOR_STEPS = 45;
+    private static final int SECONDS_TO_WAIT_FOR_STEPS = 30;
     // how often we check if a new alarm needs to be triggered in milliseconds
     private static final int POLLING_FREQUENCY_MS = 3000;
     // how long to wait in ms for GOOGLE FIT API call to complete
@@ -434,7 +437,8 @@ public class AlarmService extends Service {
     /**
      * Find if there are any steps remaining to dismiss, will only start checking if
      * the notification has reached the user, this usually takes a few seconds.
-     * If the user has seen the notification but after 30 seconds no steps have been detected,
+     * If the user has seen the notification but after SECONDS_TO_WAIT_FOR_STEPS
+     * seconds no steps have been detected,
      * we will dismiss the alarm.
      * @return true if steps are left to dismiss alarm, false if no more steps are needed.
      */
@@ -446,15 +450,24 @@ public class AlarmService extends Service {
 
         if(notificationTriggered){
             alarmStartMonitor = Calendar.getInstance();
+            alarmTimeOutMonitor = Calendar.getInstance();
             alarmStartMonitor.add(Calendar.SECOND, SECONDS_TO_WAIT_FOR_STEPS);
+            // wait double to amount of time to dismiss if we find some steps but not all
+            alarmTimeOutMonitor.add(Calendar.SECOND, SECONDS_TO_WAIT_FOR_STEPS * 2);
             notificationTriggered = false;
             foundNotification = true;
         }
         Calendar now = Calendar.getInstance();
-        // if after 45 seconds of the notification reaching the user we still
+        // if after SECONDS_TO_WAIT_FOR_STEPS seconds of the notification reaching the user we still
         // have not detected any steps, just dismiss the alarm.
         if(foundNotification && now.after(alarmStartMonitor) && stepsRemaining == stepsToDismiss){
             errorMessageToast(getString(R.string.could_not_find_steps_error));
+            return false;
+        }
+        // if we walked some steps but not all also dismiss the alarm eventually, else it will
+        // stick around forever
+        else if(foundNotification && now.after(alarmTimeOutMonitor)){
+            errorMessageToast(getString(R.string.alarm_not_dismissed_in_time));
             return false;
         }
         return stepsRemaining > 0;

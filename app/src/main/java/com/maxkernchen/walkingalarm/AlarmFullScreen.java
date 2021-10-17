@@ -212,6 +212,10 @@ public class AlarmFullScreen extends AppCompatActivity {
                 context.startService(new Intent(context, AlarmService.class));
         }
 
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.show();
+        }
         moveTaskToBack(true);
         finish();
     }

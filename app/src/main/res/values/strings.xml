@@ -36,6 +36,8 @@
     <string name="duplicate_alarm_time_error">Error: Alarm already exists at this time </string>
     <string name="no_steps_found_after_time">Error: Could not find change in steps,
         dismissing Alarm</string>
+    <string name="alarm_not_dismissed_in_time">Error: Steps not walked within 1 minute,
+        dismissing alarm</string>
 
     <!-- Preference Titles -->
     <string name="settings_header">General</string>
