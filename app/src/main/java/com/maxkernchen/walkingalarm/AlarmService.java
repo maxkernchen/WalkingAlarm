@@ -94,6 +94,7 @@ public class AlarmService extends Service {
     // notification channel name for the service notification
     private static final String NOTIFICATION_CHANNEL_NAME = "AlarmServiceNotificationName";
 
+
     /**
      * On start of the service make sure we start based upon API level.
      * Newer API levels require a notification to show the app is running.
@@ -230,14 +231,14 @@ public class AlarmService extends Service {
     private Notification setUpNotificationChannelsAndroidO() {
             Notification notification = null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel chan = new NotificationChannel(NOTIFICATION_CHANNEL_ID,
+            NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID,
                     NOTIFICATION_CHANNEL_NAME, NotificationManager.IMPORTANCE_NONE);
 
-            chan.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            notificationChannel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
 
             NotificationManager manager = (NotificationManager)
                     getSystemService(Context.NOTIFICATION_SERVICE);
-            manager.createNotificationChannel(chan);
+            manager.createNotificationChannel(notificationChannel);
 
             NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(
                     this, NOTIFICATION_CHANNEL_ID);
@@ -366,18 +367,27 @@ public class AlarmService extends Service {
                     .addOnSuccessListener(new OnSuccessListener<DataSet>() {
                         @Override
                         public void onSuccess(DataSet dataSet) {
-                            // get just current steps for today we will compare to previous fetch.
+                            // get just current steps for today that we will compare
+                            // to previous fetch.
                             if(dataSet.getDataPoints().size() > 0) {
                                 final int stepsInner = dataSet.getDataPoints().get(0).
                                         getValue(Field.FIELD_STEPS).asInt();
                                 Log.i(logTag, "Found Steps: " + (stepsInner));
 
                                 setCurrentSteps(stepsInner);
-                                // latch is now okay to release and method can finish.
                             }
                             else{
-                                errorMessageToast(getString(R.string.could_not_find_steps_error));
+                                // set current steps to zero if we don't find any.
+                                // This could occur on the first alarm of the day. Most
+                                // likely there wont be any steps if the user did not move their
+                                // after midnight.
+                                // If it remains zero for long enough, it should dismiss due to
+                                // no change in steps.
+                                Log.i(logTag, "No Steps found..setting to zero");
+
+                                setCurrentSteps(0);
                             }
+                            // latch is now okay to release and method can finish.
                             latch.countDown();
 
                         }
@@ -522,6 +532,8 @@ public class AlarmService extends Service {
      * @param toastText the message to toast
      */
     private void errorMessageToast(String toastText) {
+
+        Log.e(logTag, "Error Found!: " + toastText);
 
         Intent intent = new Intent(AlarmService.TOAST_MESSAGE_FROM_SERVICE_ACTION, null,
                 this, AlarmReceiver.class);
