@@ -28,7 +28,6 @@ public class AlarmReceiver extends BroadcastReceiver {
      */
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.i(logTag, "Intent Action: " + intent.getAction());
         switch (intent.getAction()) {
             // once the phone is rebooted we want to start the alarm service.
             case Intent.ACTION_BOOT_COMPLETED: {

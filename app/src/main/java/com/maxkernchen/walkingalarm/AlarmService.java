@@ -187,11 +187,9 @@ public class AlarmService extends Service {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                 createAlarmChannelSoundAndroidO();
                             }
-                            Log.i(logTag, "Starting Notification!");
                             toFullScreenAlarm(getStepsToDimiss());
                             // wait some time for notification to reach user.
                             sleepMainThread(POLLING_FREQUENCY_MS);
-                            Log.i(logTag, "Getting Steps!");
 
                             startingSteps = getCurrentSteps();
                             while (stepsRemainingToDismiss() && !errorFoundDuringAlarm) {
@@ -364,13 +362,11 @@ public class AlarmService extends Service {
      */
     private void findCurrentSteps(){
         CountDownLatch latch = new CountDownLatch(1);
-        Log.i(logTag, "Trying to login");
         GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
         if(account == null){
            errorMessageToast(getString(R.string.could_not_find_account_error));
         }
         else {
-            Log.i(logTag, "Successful login");
 
             Fitness.getHistoryClient(getApplicationContext(), account)
                     .readDailyTotal(DataType.TYPE_STEP_COUNT_DELTA)
@@ -381,7 +377,6 @@ public class AlarmService extends Service {
                             if(dataSet.getDataPoints().size() > 0) {
                                 final int stepsInner = dataSet.getDataPoints().get(0).
                                         getValue(Field.FIELD_STEPS).asInt();
-                                Log.i(logTag, "Found Steps: " + (stepsInner));
 
                                 setCurrentSteps(stepsInner);
                                 // latch is now okay to release and method can finish.
