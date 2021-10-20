@@ -45,13 +45,16 @@ public class AlarmReceiver extends BroadcastReceiver {
                         intent.getIntExtra(AlarmFullScreen.INTENT_EXTRA_STEPS, -1);
                 String alarmName =
                         intent.getStringExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_NAME);
+                String alarmChannelID =
+                        intent.getStringExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_CHANNEL_ID);
                 String soundUri = intent.getStringExtra(AlarmFullScreen.
                         INTENT_EXTRA_ALARM_SOUND_URI);
                 boolean vibrate = intent.getBooleanExtra(AlarmFullScreen.
                         INTENT_EXTRA_ALARM_VIBRATE_BOOL, false);
                 // based on build version there are two ways to create a full screen notification
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    AlarmFullScreen.createFullScreenNotificationAndroidO(context, alarmName, steps);
+                    AlarmFullScreen.createFullScreenNotificationAndroidO(context, alarmName,
+                            alarmChannelID, steps);
                 }
                 else{
                     AlarmFullScreen.createFullScreenNotification(context, alarmName, soundUri,
