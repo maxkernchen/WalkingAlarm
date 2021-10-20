@@ -93,6 +93,11 @@ public class AlarmService extends Service {
     private static final String NOTIFICATION_CHANNEL_ID = "AlarmServiceNotificationChannel";
     // notification channel name for the service notification
     private static final String NOTIFICATION_CHANNEL_NAME = "AlarmServiceNotificationName";
+    // current unique id we will use for notification channel id, this will be a GUID
+    // to allow us to change the sound/vibration attributes when creating the notification
+    private String currentAlarmChannelID;
+
+
 
     /**
      * On start of the service make sure we start based upon API level.
@@ -173,6 +178,10 @@ public class AlarmService extends Service {
 
                         if (isAlarm != null) {
                             currentAlarmName = isAlarm.getAlarmName();
+                            // use random UUID for channel id, this allows us to
+                            // apply changes to a repeating alarm if the sound or vibration settings
+                            // were changed. 
+                            currentAlarmChannelID = java.util.UUID.randomUUID().toString();
                             currentAlarmSoundUri = isAlarm.getAlarmSoundUri();
                             // only need to create notification channel in Oreo or greater
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -277,9 +286,10 @@ public class AlarmService extends Service {
                 .setUsage(AudioAttributes.USAGE_ALARM)
                 .build();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
             NotificationChannel channel = new NotificationChannel(AlarmFullScreen.CHANNEL_ID
-                    + currentAlarmName,
+                    + currentAlarmChannelID,
                     AlarmFullScreen.CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
             channel.setDescription(AlarmFullScreen.CHANNEL_DESCRIPTION);
             channel.enableVibration(isVibrationEnabled());
@@ -302,6 +312,7 @@ public class AlarmService extends Service {
         Intent intent = new Intent(AlarmFullScreen.FULL_SCREEN_ACTION_ALARM, null,
                 this, AlarmReceiver.class);
         intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_NAME, currentAlarmName);
+        intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_CHANNEL_ID, currentAlarmChannelID);
         intent.putExtra(AlarmFullScreen.INTENT_EXTRA_STEPS, steps);
         // sound URI and vibrate is only used for API < 26 calls.
         intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_SOUND_URI, currentAlarmSoundUri);
@@ -329,7 +340,7 @@ public class AlarmService extends Service {
     private void dismissAlarm(){
         Intent intent = new Intent(AlarmFullScreen.DISMISS_ALARM_ACTION, null, this,
                 AlarmReceiver.class);
-        intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_NAME, currentAlarmName);
+        intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_CHANNEL_ID, currentAlarmChannelID);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
         try {

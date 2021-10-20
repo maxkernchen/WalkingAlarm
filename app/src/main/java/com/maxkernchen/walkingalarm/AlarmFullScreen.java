@@ -77,6 +77,10 @@ public class AlarmFullScreen extends AppCompatActivity {
      */
     public static final String INTENT_EXTRA_ALARM_VIBRATE_BOOL = "AlarmVibrateBoolExtra";
     /**
+     * public Static String intent extra that stores the alarm channel id.
+     */
+    public static final String INTENT_EXTRA_ALARM_CHANNEL_ID = "AlarmChannelIDExtra";
+    /**
      * public Static int intent extra that stores notification id.
      */
     public static final int NOTIFICATION_ID_ALARM = 1;
@@ -156,14 +160,6 @@ public class AlarmFullScreen extends AppCompatActivity {
             @Override
             public void onReceive(Context context, Intent intent) {
                 switch (intent.getAction()) {
-                    case AlarmFullScreen.FULL_SCREEN_ACTION_ALARM: {
-                        String alarmName = intent.getStringExtra(
-                                AlarmFullScreen.INTENT_EXTRA_ALARM_NAME);
-                        int stepsToDismiss = intent.getIntExtra(AlarmFullScreen.INTENT_EXTRA_STEPS,
-                                -1);
-                        createFullScreenNotificationAndroidO(context, alarmName, stepsToDismiss);
-                        break;
-                    }
                     case AlarmFullScreen.WALK_ACTION: {
                         int steps = intent.getIntExtra
                                 (AlarmFullScreen.INTENT_EXTRA_STEPS, -1);
@@ -171,23 +167,20 @@ public class AlarmFullScreen extends AppCompatActivity {
                             TextView view = (TextView) findViewById(R.id.fullscreen_content);
                             view.setText(getString(R.string.alarm_steps_remaining, steps));
                         }
-
                         break;
                     }
                     case AlarmFullScreen.DISMISS_ALARM_ACTION: {
-                        String alarmName = intent.getStringExtra(
-                                AlarmFullScreen.INTENT_EXTRA_ALARM_NAME);
-                        cancelFullScreenNotification(context, alarmName);
+                        String alarmChanID = intent.getStringExtra(
+                                AlarmFullScreen.INTENT_EXTRA_ALARM_CHANNEL_ID);
+                        cancelFullScreenNotification(context, alarmChanID);
                         break;
                     }
                 }
-
             }
         };
         IntentFilter filter = new IntentFilter();
         filter.addAction(AlarmFullScreen.WALK_ACTION);
         filter.addAction(AlarmFullScreen.DISMISS_ALARM_ACTION);
-        filter.addAction(AlarmFullScreen.FULL_SCREEN_ACTION_ALARM);
         registerReceiver(alarmFullScreenReceiver, filter);
     }
 
@@ -195,16 +188,17 @@ public class AlarmFullScreen extends AppCompatActivity {
     /**
      * Cancel the current notification and move the full screen activity to the back.
      * @param context - context sent from AlarmReceiver.
-     * @param alarmName - the name of the alarm, used to uniquely make each notification channel
+     * @param alarmChannelID - the channel id of the alarm,
+     *                       used to uniquely make each notification channel
      */
-    private void cancelFullScreenNotification(Context context, String alarmName){
+    private void cancelFullScreenNotification(Context context, String alarmChannelID){
         isCreated = false;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManagerCompat notificationManager =
                     NotificationManagerCompat.from(context);
             notificationManager.cancel(AlarmFullScreen.NOTIFICATION_ID_ALARM);
             notificationManager.deleteNotificationChannel
-                    (AlarmFullScreen.CHANNEL_ID + alarmName);
+                    (AlarmFullScreen.CHANNEL_ID + alarmChannelID);
         }
         else {
             // have to start and stop service to remove notification if API < 26
@@ -224,9 +218,11 @@ public class AlarmFullScreen extends AppCompatActivity {
      * Create the notification using context from alarm service.
      * @param context - context from alarm service.
      * @param alarmName - name of alarm to be used on notification text.
+     * @parm alarmChannelID - unique channel id for this notification
      * @param steps steps to dismiss to be used in notification subtext
      */
     public static void createFullScreenNotificationAndroidO(Context context, String alarmName,
+                                                            String alarmChannelID,
                                                             int steps)
     {
         Intent intent = new Intent(context, AlarmFullScreen.class);
@@ -236,7 +232,7 @@ public class AlarmFullScreen extends AppCompatActivity {
                 0);
 
         NotificationCompat.Builder notificationBuilder =
-                new NotificationCompat.Builder(context, CHANNEL_ID + alarmName)
+                new NotificationCompat.Builder(context, CHANNEL_ID + alarmChannelID)
                         .setSmallIcon(R.drawable.ic_walk_action_foreground)
                         .setContentTitle(context.getString(R.string.alarm_notification_text,
                                 alarmName))
