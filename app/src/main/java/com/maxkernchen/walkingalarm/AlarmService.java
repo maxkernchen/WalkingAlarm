@@ -382,7 +382,12 @@ public class AlarmService extends Service {
                                 // latch is now okay to release and method can finish.
                             }
                             else{
-                                errorMessageToast(getString(R.string.could_not_find_steps_error));
+                                // a specific scenario is that the user has not moved their phone
+                                // since midnight. In that case the first alarm of the day
+                                // would have no steps. So we instead of quitting, we assign zero
+                                // steps. If this always stays at zero, eventually we should reach
+                                // SECONDS_TO_WAIT_FOR_STEPS which will dismiss the alarm.
+                                setCurrentSteps(0);
                             }
                             latch.countDown();
 
@@ -397,7 +402,7 @@ public class AlarmService extends Service {
             try {
                 timedOut = !latch.await(GOOGLE_FIT_FETCH_TIMEOUT, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                errorMessageToast(getString(R.string.could_not_find_steps_error));
             }
             if(timedOut){
                 errorMessageToast(getString(R.string.could_not_find_steps_error));
