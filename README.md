@@ -4,9 +4,7 @@
 
 Walking Alarm is an Android application which tracks a user's steps to dismiss an alarm. 
 
-To track steps it uses the [Google Fit Api](https://developers.google.com/fit/android)  
-
-which requires a user to OAuth and give the application read permissions to their fitness data. 
+To track steps it uses the [Google Fit Api](https://developers.google.com/fit/android) which requires a user to OAuth and give the application read permissions to their fitness data. 
 
 This application will not function without an active Google Fit account and step tracking. 
 
