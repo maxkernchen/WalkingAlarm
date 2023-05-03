@@ -93,16 +93,36 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        String[] permissionsStr = {Manifest.permission.FOREGROUND_SERVICE,
-                Manifest.permission.POST_NOTIFICATIONS,
-                Manifest.permission.DISABLE_KEYGUARD,
-                Manifest.permission.RECEIVE_BOOT_COMPLETED,
-                Manifest.permission.DISABLE_KEYGUARD,
-                ACTIVITY_RECOGNITION,
-                Manifest.permission.USE_FULL_SCREEN_INTENT,
-                Manifest.permission.WAKE_LOCK
-            };
 
+        // get permissions based on SDK version
+        String[] permissionsStr;
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionsStr = new String[]{Manifest.permission.FOREGROUND_SERVICE,
+                    //33
+                    Manifest.permission.POST_NOTIFICATIONS,
+                    Manifest.permission.DISABLE_KEYGUARD,
+                    Manifest.permission.RECEIVE_BOOT_COMPLETED,
+                    Manifest.permission.DISABLE_KEYGUARD,
+                    ACTIVITY_RECOGNITION,
+                    Manifest.permission.USE_FULL_SCREEN_INTENT,
+                    Manifest.permission.WAKE_LOCK};
+        }
+        else if(Build.VERSION.SDK_INT > Build.VERSION_CODES.P){
+            permissionsStr = new String[]{Manifest.permission.FOREGROUND_SERVICE,
+                    Manifest.permission.DISABLE_KEYGUARD,
+                    Manifest.permission.RECEIVE_BOOT_COMPLETED,
+                    Manifest.permission.DISABLE_KEYGUARD,
+                    ACTIVITY_RECOGNITION,
+                    Manifest.permission.USE_FULL_SCREEN_INTENT,
+                    Manifest.permission.WAKE_LOCK};
+        }
+        else{
+            permissionsStr = new String[]{Manifest.permission.FOREGROUND_SERVICE,
+                    Manifest.permission.DISABLE_KEYGUARD,
+                    Manifest.permission.RECEIVE_BOOT_COMPLETED,
+                    Manifest.permission.DISABLE_KEYGUARD,
+                    Manifest.permission.WAKE_LOCK};
+        }
 
 
        if (!checkAllPermissions(this,permissionsStr)) {

@@ -7,7 +7,7 @@ android {
     compileSdk 33
     defaultConfig {
         applicationId "com.maxkernchen.walkingalarm"
-        minSdk 23
+        minSdk 28
         targetSdk 33
         versionCode 10
         versionName "1.4"
