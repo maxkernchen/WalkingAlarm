@@ -202,7 +202,7 @@ public class AlarmService extends Service {
                                 if (!AlarmFullScreen.isCreated) {
                                     stepsDismissedToast(getString(R.string.alarm_dismissed_toast));
                                 }
-                                //dismissAlarm();
+                                dismissAlarm();
                             }
                             errorFoundDuringAlarm = false;
                             currentAlarmName = "";
@@ -579,7 +579,7 @@ public class AlarmService extends Service {
 
         // wait a little for the notification to reach user, before dismissing alarm
         sleepMainThread(POLLING_FREQUENCY_MS);
-        //dismissAlarm();
+        dismissAlarm();
         this.errorFoundDuringAlarm = true;
 
     }

@@ -235,13 +235,14 @@ public class AlarmFullScreen extends AppCompatActivity {
 
         int pendingFlag = -1;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            pendingFlag = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_ONE_SHOT;
+            pendingFlag = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT |
+                    PendingIntent.FLAG_ONE_SHOT;
         } else {
             pendingFlag = PendingIntent.FLAG_UPDATE_CURRENT;
         }
         PendingIntent resultPendingIntent =
                 stackBuilder.getPendingIntent(0,
-                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                        pendingFlag);
 
         NotificationCompat.Builder notificationBuilder =
                 new NotificationCompat.Builder(context, CHANNEL_ID + alarmChannelID)
