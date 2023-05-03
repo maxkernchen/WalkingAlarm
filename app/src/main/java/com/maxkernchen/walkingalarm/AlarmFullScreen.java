@@ -4,15 +4,18 @@ import android.annotation.SuppressLint;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.TaskStackBuilder;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
@@ -94,7 +97,7 @@ public class AlarmFullScreen extends AppCompatActivity {
     /**
      * Static vibration pattern to be used when vibration is enabled.
      */
-    public static final long[] VIBRATION_PATTERN = new long[] {500, 1000, 500, 1000, 500, 1000};
+    public static final long[] VIBRATION_PATTERN = new long[]{500, 1000, 500, 1000, 500, 1000};
 
     /** BroadcastReceiver for dismissing/updated the full screen activity UI. Called from
      *  AlarmReceiver
@@ -191,7 +194,7 @@ public class AlarmFullScreen extends AppCompatActivity {
      * @param alarmChannelID - the channel id of the alarm,
      *                       used to uniquely make each notification channel
      */
-    private void cancelFullScreenNotification(Context context, String alarmChannelID){
+    private void cancelFullScreenNotification(Context context, String alarmChannelID) {
         isCreated = false;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManagerCompat notificationManager =
@@ -199,10 +202,9 @@ public class AlarmFullScreen extends AppCompatActivity {
             notificationManager.cancel(AlarmFullScreen.NOTIFICATION_ID_ALARM);
             notificationManager.deleteNotificationChannel
                     (AlarmFullScreen.CHANNEL_ID + alarmChannelID);
-        }
-        else {
+        } else {
             // have to start and stop service to remove notification if API < 26
-            if(!AlarmService.isRunning)
+            if (!AlarmService.isRunning)
                 context.startService(new Intent(context, AlarmService.class));
         }
 
@@ -223,13 +225,23 @@ public class AlarmFullScreen extends AppCompatActivity {
      */
     public static void createFullScreenNotificationAndroidO(Context context, String alarmName,
                                                             String alarmChannelID,
-                                                            int steps)
-    {
+                                                            int steps) {
         Intent intent = new Intent(context, AlarmFullScreen.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_USER_ACTION |
-                Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent,
-                0);
+                Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP) ;
+
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
+        stackBuilder.addNextIntentWithParentStack(intent);
+
+        int pendingFlag = -1;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            pendingFlag = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_ONE_SHOT;
+        } else {
+            pendingFlag = PendingIntent.FLAG_UPDATE_CURRENT;
+        }
+        PendingIntent resultPendingIntent =
+                stackBuilder.getPendingIntent(0,
+                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         NotificationCompat.Builder notificationBuilder =
                 new NotificationCompat.Builder(context, CHANNEL_ID + alarmChannelID)
@@ -239,14 +251,25 @@ public class AlarmFullScreen extends AppCompatActivity {
                         .setContentText(context.
                                 getString(R.string.alarm_notification_subtext, steps))
                         .setPriority(NotificationCompat.PRIORITY_MAX)
-                        .setCategory(NotificationCompat.CATEGORY_ALARM)
-                        .setContentIntent(pendingIntent)
-                        .setFullScreenIntent(pendingIntent, true)
+                        .setCategory(NotificationCompat.CATEGORY_CALL)
+                        .setContentIntent(resultPendingIntent)
+                        .setFullScreenIntent(resultPendingIntent, true)
                         .setAutoCancel(false)
                         .setOngoing(true);
 
         NotificationManagerCompat notificationManager = NotificationManagerCompat.
                 from(context);
+        if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
         notificationManager.notify(NOTIFICATION_ID_ALARM, notificationBuilder.build());
 
     }

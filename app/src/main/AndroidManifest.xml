@@ -3,6 +3,7 @@
     package="com.maxkernchen.walkingalarm">
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
@@ -24,6 +25,7 @@
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:exported="false"
             android:label="@string/title_activity_alarm_full_screen"
+            android:showOnLockScreen="true"
             android:theme="@style/Theme.WalkingAlarm.Fullscreen" />
 
         <service

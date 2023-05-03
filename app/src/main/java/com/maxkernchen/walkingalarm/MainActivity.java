@@ -1,5 +1,7 @@
 package com.maxkernchen.walkingalarm;
 
+import static android.Manifest.permission.ACTIVITY_RECOGNITION;
+
 import android.app.Activity;
 import android.app.TimePickerDialog;
 import android.content.BroadcastReceiver;
@@ -7,11 +9,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.Manifest;
 
 import com.maxkernchen.walkingalarm.R;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -20,6 +24,7 @@ import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.fitness.FitnessOptions;
 import com.google.android.gms.fitness.data.DataType;
 import com.google.android.gms.tasks.Task;
+
 
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultCallback;
@@ -32,6 +37,7 @@ import android.text.format.DateFormat;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -53,6 +59,8 @@ import java.util.Calendar;
  * @author Max Kernchen
  */
 public class MainActivity extends AppCompatActivity {
+
+    private static final int PERMISSION_REQUEST_CODE = 2;
     /**
      * Singleton AlarmListAdapter which can be called from other classes, and
      * is central location for storing our list of Alarms.
@@ -85,6 +93,22 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        String[] permissionsStr = {Manifest.permission.FOREGROUND_SERVICE,
+                Manifest.permission.POST_NOTIFICATIONS,
+                Manifest.permission.DISABLE_KEYGUARD,
+                Manifest.permission.RECEIVE_BOOT_COMPLETED,
+                Manifest.permission.DISABLE_KEYGUARD,
+                ACTIVITY_RECOGNITION,
+                Manifest.permission.USE_FULL_SCREEN_INTENT,
+                Manifest.permission.WAKE_LOCK
+            };
+
+
+
+       if (!checkAllPermissions(this,permissionsStr)) {
+            requestPermissions(permissionsStr,
+                    PERMISSION_REQUEST_CODE);
+        }
 
         ActivityMainBinding binding =
                 ActivityMainBinding.inflate(getLayoutInflater());
@@ -274,4 +298,38 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                                           int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case PERMISSION_REQUEST_CODE:
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0 &&
+                        grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // Permission is granted. Continue the action or workflow
+                    // in your app.
+                } else {
+                    // Explain to the user that the feature is unavailable because
+                    // the feature requires a permission that the user has denied.
+                    // At the same time, respect the user's decision. Don't link to
+                    // system settings in an effort to convince the user to change
+                    // their decision.
+                }
+                return;
+        }
+        // Other 'case' lines to check for other
+        // permissions this app might request.
+    }
+
+    private static boolean checkAllPermissions(Context context, String... permissions) {
+            for (String permission : permissions) {
+                if (ContextCompat.checkSelfPermission(context, permission) !=
+                        PackageManager.PERMISSION_GRANTED) {
+                    return false;
+                }
+            }
+        return true;
+    }
 }
+

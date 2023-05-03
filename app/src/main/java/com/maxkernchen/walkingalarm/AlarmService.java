@@ -14,7 +14,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
-import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -187,7 +186,7 @@ public class AlarmService extends Service {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                 createAlarmChannelSoundAndroidO();
                             }
-                            toFullScreenAlarm(getStepsToDimiss());
+                           toFullScreenAlarm(getStepsToDismiss());
                             // wait some time for notification to reach user.
                             sleepMainThread(POLLING_FREQUENCY_MS);
 
@@ -203,7 +202,7 @@ public class AlarmService extends Service {
                                 if (!AlarmFullScreen.isCreated) {
                                     stepsDismissedToast(getString(R.string.alarm_dismissed_toast));
                                 }
-                                dismissAlarm();
+                                //dismissAlarm();
                             }
                             errorFoundDuringAlarm = false;
                             currentAlarmName = "";
@@ -316,8 +315,16 @@ public class AlarmService extends Service {
         intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_SOUND_URI, currentAlarmSoundUri);
         intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_VIBRATE_BOOL, isVibrationEnabled());
 
+        int pendingFlag = -1;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+        {
+            pendingFlag = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
+        }
+        else {
+            pendingFlag =  PendingIntent.FLAG_UPDATE_CURRENT;
+        }
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+                pendingFlag);
 
         // need to use alarm manager to send intent, else it might be ignore if device is in
         // deep sleep
@@ -339,8 +346,16 @@ public class AlarmService extends Service {
         Intent intent = new Intent(AlarmFullScreen.DISMISS_ALARM_ACTION, null, this,
                 AlarmReceiver.class);
         intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_CHANNEL_ID, currentAlarmChannelID);
+        int pendingFlag = -1;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+        {
+            pendingFlag = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
+        }
+        else {
+            pendingFlag =  PendingIntent.FLAG_UPDATE_CURRENT;
+        }
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+                pendingFlag);
         try {
             pendingIntent.send();
         } catch (PendingIntent.CanceledException e) {
@@ -414,7 +429,7 @@ public class AlarmService extends Service {
      * Get the number of steps we need to dismiss the alarm, default value of 5.
      * @return the number of steps to dismiss from settings or default of 5.
      */
-    private int getStepsToDimiss(){
+    private int getStepsToDismiss(){
         int stepsToDismiss = SettingsActivity.SettingsFragment.MINIMUM_STEPS_TO_DISMISS;
         String stepsString = settingsPref.
                 getString(SettingsActivity.SettingsFragment.STEPS_TO_DISMISS_KEY, "5");
@@ -454,7 +469,7 @@ public class AlarmService extends Service {
      * @return true if steps are left to dismiss alarm, false if no more steps are needed.
      */
     private boolean stepsRemainingToDismiss(){
-        int stepsToDismiss = getStepsToDimiss();
+        int stepsToDismiss = getStepsToDismiss();
         int stepsRemaining = stepsToDismiss - (getCurrentSteps() - startingSteps);
         stepsRemaining = Math.max(stepsRemaining, 0);
         updateStepCountAlarmFullScreen(stepsRemaining);
@@ -496,8 +511,16 @@ public class AlarmService extends Service {
                 AlarmReceiver.class);
         intent.putExtra(AlarmFullScreen.INTENT_EXTRA_STEPS, steps);
         intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_NAME, currentAlarmName);
+        int pendingFlag = -1;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+        {
+            pendingFlag = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
+        }
+        else {
+            pendingFlag =  PendingIntent.FLAG_UPDATE_CURRENT;
+        }
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+                pendingFlag);
         try {
             pendingIntent.send();
         } catch (PendingIntent.CanceledException e) {
@@ -537,8 +560,16 @@ public class AlarmService extends Service {
         Intent intent = new Intent(AlarmService.TOAST_MESSAGE_FROM_SERVICE_ACTION, null,
                 this, AlarmReceiver.class);
         intent.putExtra(AlarmService.TOAST_EXTRA_ALARM_SERVICE, toastText);
+        int pendingFlag = -1;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+        {
+            pendingFlag = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
+        }
+        else {
+            pendingFlag =  PendingIntent.FLAG_UPDATE_CURRENT;
+        }
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+                pendingFlag);
 
         try {
             pendingIntent.send();
@@ -548,7 +579,7 @@ public class AlarmService extends Service {
 
         // wait a little for the notification to reach user, before dismissing alarm
         sleepMainThread(POLLING_FREQUENCY_MS);
-        dismissAlarm();
+        //dismissAlarm();
         this.errorFoundDuringAlarm = true;
 
     }
@@ -565,8 +596,16 @@ public class AlarmService extends Service {
                 AlarmReceiver.class);
         intent.putExtra(AlarmService.TOAST_EXTRA_ALARM_SERVICE, toastText);
 
+        int pendingFlag = -1;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+        {
+            pendingFlag = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
+        }
+        else {
+            pendingFlag =  PendingIntent.FLAG_UPDATE_CURRENT;
+        }
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+                pendingFlag);
         try {
             pendingIntent.send();
         } catch (PendingIntent.CanceledException e) {
