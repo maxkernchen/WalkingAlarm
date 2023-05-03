@@ -135,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 final Calendar cldr = Calendar.getInstance();
                 int hour = is24HourTime ? cldr.get(Calendar.HOUR_OF_DAY) : cldr.get(Calendar.HOUR);
-                int minutes = cldr.get(Calendar.MINUTE);
+                int minutes = cldr.get(Calendar.MINUTE) + 1;
 
                 final TimePickerDialog picker = new TimePickerDialog(MainActivity.this,
                         new TimePickerDialog.OnTimeSetListener() {
