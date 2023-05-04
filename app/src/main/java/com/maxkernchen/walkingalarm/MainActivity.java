@@ -4,10 +4,9 @@ import static android.Manifest.permission.ACTIVITY_RECOGNITION;
 
 import android.app.Activity;
 import android.app.TimePickerDialog;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
+
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.Ringtone;
@@ -17,7 +16,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.Manifest;
 
-import com.maxkernchen.walkingalarm.R;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.common.api.ApiException;
@@ -195,11 +193,7 @@ public class MainActivity extends AppCompatActivity {
         this.setThemeOnStart();
         if(!AlarmService.isRunning) {
             Intent myService = new Intent(this, AlarmService.class);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(myService);
-            } else {
-                startService(myService);
-            }
+            startForegroundService(myService);
         }
         googleSignIn();
     }
@@ -319,6 +313,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    //TODO Update this for denied permissions
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
                                            int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);

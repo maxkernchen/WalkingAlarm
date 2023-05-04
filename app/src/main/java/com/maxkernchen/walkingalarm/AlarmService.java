@@ -116,19 +116,11 @@ public class AlarmService extends Service {
                 getDefaultSharedPreferences(getApplicationContext());
 
         PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
-        wakeLock =
-                pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKE_LOCK_TAG_ALARM_SERVICE);
+        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKE_LOCK_TAG_ALARM_SERVICE);
         wakeLock.acquire();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification notification = setUpNotificationChannelsAndroidO();
-            startForeground(2, notification);
-        }
-        else {
-            Notification notification =  setupNotification();
-            startForeground(1, notification);
-        }
-
+        Notification notification = setUpNotificationChannels();
+        startForeground(2, notification);
         startBackGroundThread();
         return START_STICKY;
     }
@@ -182,11 +174,8 @@ public class AlarmService extends Service {
                             // were changed. 
                             currentAlarmChannelID = java.util.UUID.randomUUID().toString();
                             currentAlarmSoundUri = isAlarm.getAlarmSoundUri();
-                            // only need to create notification channel in Oreo or greater
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                createAlarmChannelSoundAndroidO();
-                            }
-                           toFullScreenAlarm(getStepsToDismiss());
+                            createAlarmChannelSound();
+                            toFullScreenAlarm(getStepsToDismiss());
                             // wait some time for notification to reach user.
                             sleepMainThread(POLLING_FREQUENCY_MS);
 
@@ -233,42 +222,26 @@ public class AlarmService extends Service {
      * service
      * @return the notification to be set to the service.
      */
-    private Notification setUpNotificationChannelsAndroidO() {
-            Notification notification = null;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel chan = new NotificationChannel(NOTIFICATION_CHANNEL_ID,
-                    NOTIFICATION_CHANNEL_NAME, NotificationManager.IMPORTANCE_NONE);
+    private Notification setUpNotificationChannels() {
+        Notification notification;
 
-            chan.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+        NotificationChannel chan = new NotificationChannel(NOTIFICATION_CHANNEL_ID,
+                NOTIFICATION_CHANNEL_NAME, NotificationManager.IMPORTANCE_NONE);
+        chan.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
 
-            NotificationManager manager = (NotificationManager)
-                    getSystemService(Context.NOTIFICATION_SERVICE);
-            manager.createNotificationChannel(chan);
+        NotificationManager manager = (NotificationManager)
+                getSystemService(Context.NOTIFICATION_SERVICE);
+        manager.createNotificationChannel(chan);
 
-            NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(
-                    this, NOTIFICATION_CHANNEL_ID);
-            notification = notificationBuilder.setOngoing(true)
-                    .setContentTitle(WALKING_ALARM_RUNNING)
-                    .setPriority(NotificationManager.IMPORTANCE_MIN)
-                    .setCategory(Notification.CATEGORY_SERVICE)
-                    .build();
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(
+                this, NOTIFICATION_CHANNEL_ID);
 
-        }
+        notification = notificationBuilder.setOngoing(true)
+                .setContentTitle(WALKING_ALARM_RUNNING)
+                .setPriority(NotificationManager.IMPORTANCE_MIN)
+                .setCategory(Notification.CATEGORY_SERVICE)
+                .build();
         return notification;
-    }
-
-    /**
-     * Setup notification for always running service when using API < 26.
-     * @return the notification to assign to the foreground service.
-     */
-    private Notification setupNotification(){
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
-                .setContentTitle(getString(R.string.app_name))
-                .setContentText(WALKING_ALARM_RUNNING)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setAutoCancel(true);
-
-        return builder.build();
     }
 
     /**
@@ -276,29 +249,26 @@ public class AlarmService extends Service {
      * This sound is pulled from AlarmItem and is set globally once an Alarm is triggered.
      * Will also assign vibration to the channel if allowed in settings.
      */
-    private void createAlarmChannelSoundAndroidO(){
+    private void createAlarmChannelSound(){
 
         final AudioAttributes audioAttributes = new AudioAttributes.Builder()
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .setUsage(AudioAttributes.USAGE_ALARM)
                 .build();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
-            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-            NotificationChannel channel = new NotificationChannel(AlarmFullScreen.CHANNEL_ID
-                    + currentAlarmChannelID,
-                    AlarmFullScreen.CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
-            channel.setDescription(AlarmFullScreen.CHANNEL_DESCRIPTION);
-            channel.enableVibration(isVibrationEnabled());
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+        NotificationChannel channel = new NotificationChannel(AlarmFullScreen.CHANNEL_ID
+                + currentAlarmChannelID,
+                AlarmFullScreen.CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
+        channel.setDescription(AlarmFullScreen.CHANNEL_DESCRIPTION);
+        channel.enableVibration(isVibrationEnabled());
 
-            if(isVibrationEnabled())
-                channel.setVibrationPattern(AlarmFullScreen.VIBRATION_PATTERN);
+        if(isVibrationEnabled())
+            channel.setVibrationPattern(AlarmFullScreen.VIBRATION_PATTERN);
 
-            Uri alarmTone = Uri.parse(currentAlarmSoundUri);
-            channel.setSound(alarmTone, audioAttributes);
-            notificationManager.createNotificationChannel(channel);
-
-        }
+        Uri alarmTone = Uri.parse(currentAlarmSoundUri);
+        channel.setSound(alarmTone, audioAttributes);
+        notificationManager.createNotificationChannel(channel);
     }
 
     /**
@@ -315,7 +285,7 @@ public class AlarmService extends Service {
         intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_SOUND_URI, currentAlarmSoundUri);
         intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_VIBRATE_BOOL, isVibrationEnabled());
 
-        int pendingFlag = -1;
+        int pendingFlag;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
         {
             pendingFlag = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
@@ -346,7 +316,7 @@ public class AlarmService extends Service {
         Intent intent = new Intent(AlarmFullScreen.DISMISS_ALARM_ACTION, null, this,
                 AlarmReceiver.class);
         intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_CHANNEL_ID, currentAlarmChannelID);
-        int pendingFlag = -1;
+        int pendingFlag;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
         {
             pendingFlag = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
@@ -360,12 +330,6 @@ public class AlarmService extends Service {
             pendingIntent.send();
         } catch (PendingIntent.CanceledException e) {
             e.printStackTrace();
-        }
-        // need to stop service for API < 26, because notifications cannot be dismissed
-        // programmatically while a foreground service is running and they were created by it.
-        // Service is started again in AlarmReceiver or AlarmFulLScreen
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            stopService(new Intent(this, AlarmService.class));
         }
     }
 
@@ -382,7 +346,6 @@ public class AlarmService extends Service {
            errorMessageToast(getString(R.string.could_not_find_account_error));
         }
         else {
-
             Fitness.getHistoryClient(getApplicationContext(), account)
                     .readDailyTotal(DataType.TYPE_STEP_COUNT_DELTA)
                     .addOnSuccessListener(new OnSuccessListener<DataSet>() {
@@ -411,6 +374,7 @@ public class AlarmService extends Service {
                     .addOnFailureListener(e -> {
                         // do nothing allow for latch to timeout which will print error message
                         // and dismiss alarm
+                        e.printStackTrace();
                     });
 
             boolean timedOut = false;
@@ -511,7 +475,7 @@ public class AlarmService extends Service {
                 AlarmReceiver.class);
         intent.putExtra(AlarmFullScreen.INTENT_EXTRA_STEPS, steps);
         intent.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_NAME, currentAlarmName);
-        int pendingFlag = -1;
+        int pendingFlag;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
         {
             pendingFlag = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
@@ -560,7 +524,7 @@ public class AlarmService extends Service {
         Intent intent = new Intent(AlarmService.TOAST_MESSAGE_FROM_SERVICE_ACTION, null,
                 this, AlarmReceiver.class);
         intent.putExtra(AlarmService.TOAST_EXTRA_ALARM_SERVICE, toastText);
-        int pendingFlag = -1;
+        int pendingFlag;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
         {
             pendingFlag = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
@@ -596,7 +560,7 @@ public class AlarmService extends Service {
                 AlarmReceiver.class);
         intent.putExtra(AlarmService.TOAST_EXTRA_ALARM_SERVICE, toastText);
 
-        int pendingFlag = -1;
+        int pendingFlag;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
         {
             pendingFlag = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;

@@ -3,8 +3,6 @@ package com.maxkernchen.walkingalarm;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
-import android.util.Log;
 import android.widget.Toast;
 import androidx.core.app.NotificationManagerCompat;
 
@@ -31,11 +29,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         switch (intent.getAction()) {
             // once the phone is rebooted we want to start the alarm service.
             case Intent.ACTION_BOOT_COMPLETED: {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(new Intent(context, AlarmService.class));
-                } else {
-                    context.startService(new Intent(context, AlarmService.class));
-                }
+                context.startForegroundService(new Intent(context, AlarmService.class));
                 break;
             }
             // action for triggered the full screen alarm notification.
@@ -46,19 +40,10 @@ public class AlarmReceiver extends BroadcastReceiver {
                         intent.getStringExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_NAME);
                 String alarmChannelID =
                         intent.getStringExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_CHANNEL_ID);
-                String soundUri = intent.getStringExtra(AlarmFullScreen.
-                        INTENT_EXTRA_ALARM_SOUND_URI);
-                boolean vibrate = intent.getBooleanExtra(AlarmFullScreen.
-                        INTENT_EXTRA_ALARM_VIBRATE_BOOL, false);
-                // based on build version there are two ways to create a full screen notification
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    AlarmFullScreen.createFullScreenNotificationAndroidO(context, alarmName,
-                            alarmChannelID, steps);
-                }
-                else{
-                    AlarmFullScreen.createFullScreenNotification(context, alarmName, soundUri,
-                            steps, vibrate);
-                }
+
+                AlarmFullScreen.createFullScreenNotification(context, alarmName,
+                        alarmChannelID, steps);
+
                 AlarmService.notificationTriggered = true;
                 break;
             }
@@ -75,49 +60,25 @@ public class AlarmReceiver extends BroadcastReceiver {
             case AlarmFullScreen.DISMISS_ALARM_ACTION: {
                 String alarmName = intent.getStringExtra(
                         AlarmFullScreen.INTENT_EXTRA_ALARM_NAME);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    if (AlarmFullScreen.isCreated) {
-                        Intent in = new Intent(AlarmFullScreen.DISMISS_ALARM_ACTION);
-                        in.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_NAME, alarmName);
-                        context.sendBroadcast(in);
-                    }
-                    else {
-                        NotificationManagerCompat notificationManager =
-                                NotificationManagerCompat.from(context);
-                        notificationManager.cancel(AlarmFullScreen.NOTIFICATION_ID_ALARM);
-                        notificationManager.deleteNotificationChannel
-                                (AlarmFullScreen.CHANNEL_ID + alarmName);
-                    }
+
+                if (AlarmFullScreen.isCreated) {
+                    Intent in = new Intent(AlarmFullScreen.DISMISS_ALARM_ACTION);
+                    in.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_NAME, alarmName);
+                    context.sendBroadcast(in);
                 }
                 else {
-                    // wait a little bit for service to stop, this is needed in API < 26
-                    // to dismiss notifications triggered by a Service class.
-                    try {
-                        Thread.sleep(5000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    if (AlarmFullScreen.isCreated) {
-                        Intent in = new Intent(AlarmFullScreen.DISMISS_ALARM_ACTION);
-                        in.putExtra(AlarmFullScreen.INTENT_EXTRA_ALARM_NAME, alarmName);
-                        context.sendBroadcast(in);
-                    }
-                    else{
-                        // start service again API < 26 needs to stop service to cancel
-                        // notifications.
-
-                        if(!AlarmService.isRunning)
-                            context.startService(new Intent(context, AlarmService.class));
-                    }
+                    NotificationManagerCompat notificationManager =
+                            NotificationManagerCompat.from(context);
+                    notificationManager.cancel(AlarmFullScreen.NOTIFICATION_ID_ALARM);
+                    notificationManager.deleteNotificationChannel
+                            (AlarmFullScreen.CHANNEL_ID + alarmName);
                 }
                 break;
             }
             // this allows us to send a toast from the service class, usually for error messages.
             case AlarmService.TOAST_MESSAGE_FROM_SERVICE_ACTION: {
-
                 Toast.makeText(context, intent.getStringExtra(AlarmService.TOAST_EXTRA_ALARM_SERVICE
                 ), Toast.LENGTH_LONG).show();
-
                 break;
             }
         }

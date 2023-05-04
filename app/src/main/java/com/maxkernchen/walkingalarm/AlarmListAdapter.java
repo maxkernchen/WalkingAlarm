@@ -1,7 +1,5 @@
 package com.maxkernchen.walkingalarm;
 
-import android.app.Activity;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -15,14 +13,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.maxkernchen.walkingalarm.R;
 import com.google.android.material.button.MaterialButton;
 import com.google.gson.Gson;
 import java.time.DayOfWeek;
@@ -285,8 +279,8 @@ public class AlarmListAdapter extends
         }
 
         /**
-         * bind an alarm item, so the object representation matches what the UI shows.
-         * @param alarmItem
+         * Bind an alarm item, so the object representation matches what the UI shows.
+         * @param alarmItem the current alarm row we are binding.
          */
         private void bind(AlarmItem alarmItem){
             alarmNameTextView.setText(alarmItem.getAlarmName());
@@ -339,18 +333,18 @@ public class AlarmListAdapter extends
             MaterialButton btn = (MaterialButton) alarmViewHolder.
                     itemView.findViewById(R.id.alarm_delete_button);
             btn.setOnClickListener(l -> {
-                deleteAlarmItem(alarmViewHolder.getAdapterPosition());
+                deleteAlarmItem(alarmViewHolder.getBindingAdapterPosition());
             });
             // set expanded listener
             alarmViewHolder.itemView.setOnClickListener(l -> {
-                int position = alarmViewHolder.getAdapterPosition();
+                int position = alarmViewHolder.getBindingAdapterPosition();
                 AlarmItem alarmItem = alarmItems.get(position);
                 alarmItem.setExpanded(!alarmItem.isExpanded());
                 notifyItemChanged(position);
             });
             // set active switch
             alarmViewHolder.alarmActiveSwitch.setOnClickListener(l -> {
-                int position = alarmViewHolder.getAdapterPosition();
+                int position = alarmViewHolder.getBindingAdapterPosition();
                 AlarmItem alarmItem = alarmItems.get(position);
                 alarmItem.setActive(!alarmItem.isActive());
                 notifyItemChanged(position);
@@ -361,7 +355,7 @@ public class AlarmListAdapter extends
             for (ToggleButton toggleButton : toggleButtons){
                 final int finalIndex = i;
                 toggleButton.setOnClickListener(l -> {
-                    int position = alarmViewHolder.getAdapterPosition();
+                    int position = alarmViewHolder.getBindingAdapterPosition();
                     AlarmItem alarmItem = alarmItems.get(position);
                     if(toggleButton.isChecked()){
                         alarmItem.addDayOfWeek(DayOfWeek.of(finalIndex));
@@ -378,7 +372,7 @@ public class AlarmListAdapter extends
             // to MainActivity's broadcast receivers.
             alarmSoundPicker.setOnClickListener(l -> {
 
-                MainActivity.currentItemIndexSoundPick = alarmViewHolder.getAdapterPosition();
+                MainActivity.currentItemIndexSoundPick = alarmViewHolder.getBindingAdapterPosition();
 
                 Intent alarmSoundIntent = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
                 alarmSoundIntent.putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI,
