@@ -1,9 +1,10 @@
 package com.maxkernchen.walkingalarm;
 
+import static com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes.SIGN_IN_FAILED;
+
 import android.app.Activity;
 import android.app.TimePickerDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 
 import android.content.SharedPreferences;
@@ -23,17 +24,16 @@ import com.google.android.gms.fitness.data.DataType;
 import com.google.android.gms.tasks.Task;
 
 
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
+
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.provider.Settings;
 import android.text.format.DateFormat;
-import android.view.View;
 
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.content.ContextCompat;
@@ -46,7 +46,6 @@ import com.maxkernchen.walkingalarm.databinding.ActivityMainBinding;
 
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.TimePicker;
 import android.widget.Toast;
 
 import java.util.Calendar;
@@ -140,7 +139,10 @@ public class MainActivity extends AppCompatActivity {
 
         RecyclerView rvAlarmListView = (RecyclerView) findViewById(R.id.alarmListView);
         // disable animations on changes, else it will flash toggle buttons for every update.
-        rvAlarmListView.getItemAnimator().setChangeDuration(0);
+        RecyclerView.ItemAnimator itemAnimator = rvAlarmListView.getItemAnimator();
+        if(itemAnimator != null){
+            itemAnimator.setChangeDuration(0);
+        }
 
         AlarmListAdapter alarmListAdapter = new AlarmListAdapter(
                 prefs);
@@ -150,38 +152,31 @@ public class MainActivity extends AppCompatActivity {
 
         is24HourTime = DateFormat.is24HourFormat(this);
         // add listener to floating action button which will pop up a TimePickerDialog.
-        binding.fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                final Calendar cldr = Calendar.getInstance();
-                int hour = is24HourTime ? cldr.get(Calendar.HOUR_OF_DAY) : cldr.get(Calendar.HOUR);
-                int minutes = cldr.get(Calendar.MINUTE) + 1;
+        binding.fab.setOnClickListener(view -> {
+            final Calendar cldr = Calendar.getInstance();
+            int hour = is24HourTime ? cldr.get(Calendar.HOUR_OF_DAY) : cldr.get(Calendar.HOUR);
+            int minutes = cldr.get(Calendar.MINUTE) + 1;
 
-                final TimePickerDialog picker = new TimePickerDialog(MainActivity.this,
-                        new TimePickerDialog.OnTimeSetListener() {
-                            @Override
-                            public void onTimeSet(TimePicker tp, int sHour, int sMinute) {
-                                boolean addSucceeded = alarmListAdapter.addAlarmItem(
-                                        new AlarmItem(sHour, sMinute));
-                                if(!addSucceeded){
-                                    Toast.makeText(MainActivity.this,
-                                            R.string.duplicate_alarm_time_error,
-                                            Toast.LENGTH_LONG).show();
-                                }
+            final TimePickerDialog picker = new TimePickerDialog(MainActivity.this,
+                    (tp, sHour, sMinute) -> {
+                        boolean addSucceeded = alarmListAdapter.addAlarmItem(
+                                new AlarmItem(sHour, sMinute));
+                        if(!addSucceeded){
+                            Toast.makeText(MainActivity.this,
+                                    R.string.duplicate_alarm_time_error,
+                                    Toast.LENGTH_LONG).show();
+                        }
 
-                            }
-                        }, hour, minutes, is24HourTime);
-                picker.setCanceledOnTouchOutside(false);
-                picker.show();
-            }
+                    }, hour, minutes, is24HourTime);
+            picker.setCanceledOnTouchOutside(false);
+            picker.show();
         });
         // handle response from sound picker intent.
         alarmPickerResultLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
-                new ActivityResultCallback<ActivityResult>() {
-                    @Override
-                    public void onActivityResult(ActivityResult result) {
-                        if (result.getResultCode() == Activity.RESULT_OK) {
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK) {
+                        if(result.getData() != null) {
                             final Uri uri = result.getData().getParcelableExtra
                                     (RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
                             updateAlarmSoundForCurrentItem(uri);
@@ -265,6 +260,7 @@ public class MainActivity extends AppCompatActivity {
         final FitnessOptions fitnessOptions = FitnessOptions.builder()
                 .addDataType(DataType.TYPE_STEP_COUNT_CUMULATIVE, FitnessOptions.ACCESS_READ)
                 .addDataType(DataType.TYPE_STEP_COUNT_DELTA, FitnessOptions.ACCESS_READ)
+                .addDataType(DataType.AGGREGATE_STEP_COUNT_DELTA, FitnessOptions.ACCESS_READ)
                 .build();
 
         GoogleSignInAccount account = GoogleSignIn.getAccountForExtension(this,
@@ -303,13 +299,15 @@ public class MainActivity extends AppCompatActivity {
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if(requestCode == GOOGLE_SIGN_IN_REQUEST_CODE){
+        if (requestCode == GOOGLE_SIGN_IN_REQUEST_CODE) {
             Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
             try {
                 GoogleSignInAccount account = task.getResult(ApiException.class);
             } catch (ApiException e) {
-                Toast.makeText(this, R.string.could_not_find_account_error,
-                        Toast.LENGTH_SHORT).show();
+                if (e.getStatusCode() == SIGN_IN_FAILED) {
+                    Toast.makeText(this, R.string.could_not_find_account_error,
+                            Toast.LENGTH_SHORT).show();
+                }
             }
         }
     }
@@ -319,15 +317,15 @@ public class MainActivity extends AppCompatActivity {
      * Overrode this to send user dialog to get to settings and add notification permissions.
      * @param requestCode The request code passed in (
      * android.app.Activity, String[], int)}
-     * @param permissions The requested permissions. Never null.
+     * @param permissions he requested permissions. Never null.
      * @param grantResults The grant results for the corresponding permissions
      *     which is either {@link android.content.pm.PackageManager#PERMISSION_GRANTED}
      *     or {@link android.content.pm.PackageManager#PERMISSION_DENIED}. Never null.
      *
      */
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                                           int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         boolean onePermissionDenied = false;
         if (requestCode == PERMISSION_REQUEST_CODE) {
@@ -339,29 +337,24 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 if(onePermissionDenied) {
-                    final AlertDialog dialog = new MaterialAlertDialogBuilder(this, R.style.SettingsDialogRounded)
+                    final AlertDialog dialog = new MaterialAlertDialogBuilder(this,
+                            R.style.SettingsDialogRounded)
                             .setIcon(R.drawable.ic_walk_action_foreground)
                             .setMessage(R.string.no_notification_permissions)
                             .setPositiveButton(R.string.go_to_permission_settings,
-                                new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialogInterface, int i) {
-                                    // if user denies permissions, then send them to settings page
-                                    Intent intent =
-                                            new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                                            Uri.fromParts("package", getPackageName(),
-                                                    null));
-                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                                    startActivity(intent);
-                                    }
-                                })
+                                    (dialogInterface, i) -> {
+                                        // if user denies permissions, then send them to settings page
+                                        Intent intent =
+                                                new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                                Uri.fromParts("package", getPackageName(),
+                                                        null));
+                                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                        startActivity(intent);
+                                        })
                             .setNegativeButton(R.string.cancel_dialog,
-                                    new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialogInterface, int i) {
-                                    // empty method to dismiss dialog.
-                                }
-                            })
+                                    (dialogInterface, i) -> {
+                                        // empty method to dismiss dialog.
+                                    })
                             .create();
                     dialog.show();
                 }

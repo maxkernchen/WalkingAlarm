@@ -14,6 +14,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.widget.Toast;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -22,10 +23,8 @@ import androidx.preference.PreferenceManager;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.fitness.Fitness;
-import com.google.android.gms.fitness.data.DataSet;
 import com.google.android.gms.fitness.data.DataType;
 import com.google.android.gms.fitness.data.Field;
-import com.google.android.gms.tasks.OnSuccessListener;
 
 import java.util.Calendar;
 import java.util.List;
@@ -58,7 +57,7 @@ public class AlarmService extends Service {
     // This is used to eventually dismiss the alarm so it does not hang forever.
     private Calendar alarmTimeOutMonitor;
     // seconds to wait before dismissing alarm due to no steps found.
-    private static final int SECONDS_TO_WAIT_FOR_STEPS = 30;
+    private static final int SECONDS_TO_WAIT_FOR_STEPS = 45;
     // how often we check if a new alarm needs to be triggered in milliseconds
     private static final int POLLING_FREQUENCY_MS = 3000;
     // how long to wait in ms for GOOGLE FIT API call to complete
@@ -348,33 +347,29 @@ public class AlarmService extends Service {
         else {
             Fitness.getHistoryClient(getApplicationContext(), account)
                     .readDailyTotal(DataType.TYPE_STEP_COUNT_DELTA)
-                    .addOnSuccessListener(new OnSuccessListener<DataSet>() {
-                        @Override
-                        public void onSuccess(DataSet dataSet) {
-                            // get just current steps for today we will compare to previous fetch.
-                            if(dataSet.getDataPoints().size() > 0) {
-                                final int stepsInner = dataSet.getDataPoints().get(0).
-                                        getValue(Field.FIELD_STEPS).asInt();
-
-                                setCurrentSteps(stepsInner);
-                                // latch is now okay to release and method can finish.
-                            }
-                            else{
-                                // a specific scenario is that the user has not moved their phone
-                                // since midnight. In that case the first alarm of the day
-                                // would have no steps. So we instead of quitting, we assign zero
-                                // steps. If this always stays at zero, eventually we should reach
-                                // SECONDS_TO_WAIT_FOR_STEPS which will dismiss the alarm.
-                                setCurrentSteps(0);
-                            }
-                            latch.countDown();
-
+                    .addOnSuccessListener(dataSet -> {
+                        // get just current steps for today we will compare to previous fetch.
+                        if(dataSet.getDataPoints().size() > 0) {
+                            final int stepsInner = dataSet.getDataPoints().get(0).
+                                    getValue(Field.FIELD_STEPS).asInt();
+                            setCurrentSteps(stepsInner);
+                            Toast.makeText(this, stepsInner, Toast.LENGTH_SHORT).show();
                         }
+                        else{
+                            // a specific scenario is that the user has not moved their phone
+                            // since midnight. In that case the first alarm of the day
+                            // would have no steps. So we instead of quitting, we assign zero
+                            // steps. If this always stays at zero, eventually we should reach
+                            // SECONDS_TO_WAIT_FOR_STEPS which will dismiss the alarm.
+                            setCurrentSteps(0);
+                        }
+                        // latch is now okay to release and method can finish.
+                        latch.countDown();
+
                     })
                     .addOnFailureListener(e -> {
                         // do nothing allow for latch to timeout which will print error message
                         // and dismiss alarm
-                        e.printStackTrace();
                     });
 
             boolean timedOut = false;
