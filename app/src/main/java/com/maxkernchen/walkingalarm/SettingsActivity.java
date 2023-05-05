@@ -48,8 +48,6 @@ public class SettingsActivity extends AppCompatActivity {
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
-
-
     }
 
     /**
@@ -73,8 +71,6 @@ public class SettingsActivity extends AppCompatActivity {
         }
         return super.onOptionsItemSelected(item);
     }
-
-
 
     /**
      * Inner static SettingsFragment class which will store our settings and create a SharedPrefs
@@ -104,7 +100,7 @@ public class SettingsActivity extends AppCompatActivity {
         public final static int MINIMUM_STEPS_TO_DISMISS = 5;
 
         /**
-         * Overrideen method onCreatePreferences, in this we find the UI elements required
+         * Overridden method onCreatePreferences, in this we find the UI elements required
          * and set up our Shared Preference listener
          * @param savedInstanceState bundle not used
          * @param rootKey key for us to create our preferences layout.
@@ -127,11 +123,11 @@ public class SettingsActivity extends AppCompatActivity {
             });
 
             // create our shared preferences listener and assign it to default shared prefs.
-            SharedPreferences.OnSharedPreferenceChangeListener listnerSharedPrefs =
+            SharedPreferences.OnSharedPreferenceChangeListener listenerSharedPress =
                     createSharedPrefsListener();
 
             PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext())
-                    .registerOnSharedPreferenceChangeListener(listnerSharedPrefs);
+                    .registerOnSharedPreferenceChangeListener(listenerSharedPress);
 
         }
 
@@ -144,7 +140,7 @@ public class SettingsActivity extends AppCompatActivity {
         private android.content.SharedPreferences.OnSharedPreferenceChangeListener
         createSharedPrefsListener() {
 
-            SharedPreferences.OnSharedPreferenceChangeListener listnerSharedPrefs
+            SharedPreferences.OnSharedPreferenceChangeListener listenerSharedPrefs
                     = new SharedPreferences.OnSharedPreferenceChangeListener() {
                 @Override
                 public void onSharedPreferenceChanged(
@@ -176,9 +172,7 @@ public class SettingsActivity extends AppCompatActivity {
                     }
                 }
             };
-            return listnerSharedPrefs;
+            return listenerSharedPrefs;
         }
-
-
     }
 }

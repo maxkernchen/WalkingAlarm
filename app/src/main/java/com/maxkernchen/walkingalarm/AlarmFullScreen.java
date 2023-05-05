@@ -261,7 +261,4 @@ public class AlarmFullScreen extends AppCompatActivity {
         notificationManager.notify(NOTIFICATION_ID_ALARM, notificationBuilder.build());
 
     }
-
-
-
 }

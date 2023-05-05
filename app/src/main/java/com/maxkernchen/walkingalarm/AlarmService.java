@@ -95,8 +95,6 @@ public class AlarmService extends Service {
     // to allow us to change the sound/vibration attributes when creating the notification
     private String currentAlarmChannelID;
 
-
-
     /**
      * On start of the service make sure we start based upon API level.
      * Newer API levels require a notification to show the app is running.

@@ -16,7 +16,7 @@ import androidx.core.app.NotificationManagerCompat;
 
 
 public class AlarmReceiver extends BroadcastReceiver {
-
+    // log tag used only for debugging
     private static final String logTag = "AlarmReceiver";
 
     /**

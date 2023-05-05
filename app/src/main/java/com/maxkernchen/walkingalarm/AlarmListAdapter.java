@@ -371,7 +371,6 @@ public class AlarmListAdapter extends
             // As we have to trigger this intent from the Main Activity, we send a broadcast
             // to MainActivity's broadcast receivers.
             alarmSoundPicker.setOnClickListener(l -> {
-
                 MainActivity.currentItemIndexSoundPick = alarmViewHolder.getBindingAdapterPosition();
 
                 Intent alarmSoundIntent = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
@@ -379,11 +378,7 @@ public class AlarmListAdapter extends
                         RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM));
 
                 MainActivity.alarmPickerResultLauncher.launch(alarmSoundIntent);
-
-
             });
         }
-
-
     }
 }

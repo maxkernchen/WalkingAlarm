@@ -312,7 +312,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
     /**
      * Overrode this to send user dialog to get to settings and add notification permissions.
      * @param requestCode The request code passed in (
@@ -362,6 +361,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Helper method which checks all permissions if they exist.
+     * @param context - the current context for this activity
+     * @param permissions - list of String permissions to check for
+     * @return returns true is all permissions are already allowed, else false.
+     */
     private static boolean checkAllPermissions(Context context, String... permissions) {
             for (String permission : permissions) {
                 if (ContextCompat.checkSelfPermission(context, permission) !=
