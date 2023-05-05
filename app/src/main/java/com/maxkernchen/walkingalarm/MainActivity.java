@@ -1,10 +1,9 @@
 package com.maxkernchen.walkingalarm;
 
-import static android.Manifest.permission.ACTIVITY_RECOGNITION;
-
 import android.app.Activity;
 import android.app.TimePickerDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 
 import android.content.SharedPreferences;
@@ -29,8 +28,10 @@ import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.provider.Settings;
 import android.text.format.DateFormat;
 import android.view.View;
 
@@ -40,6 +41,7 @@ import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.maxkernchen.walkingalarm.databinding.ActivityMainBinding;
 
 import android.view.Menu;
@@ -101,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
                     Manifest.permission.DISABLE_KEYGUARD,
                     Manifest.permission.RECEIVE_BOOT_COMPLETED,
                     Manifest.permission.DISABLE_KEYGUARD,
-                    ACTIVITY_RECOGNITION,
+                    Manifest.permission.ACTIVITY_RECOGNITION,
                     Manifest.permission.USE_FULL_SCREEN_INTENT,
                     Manifest.permission.WAKE_LOCK};
         }
@@ -110,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
                     Manifest.permission.DISABLE_KEYGUARD,
                     Manifest.permission.RECEIVE_BOOT_COMPLETED,
                     Manifest.permission.DISABLE_KEYGUARD,
-                    ACTIVITY_RECOGNITION,
+                    Manifest.permission.ACTIVITY_RECOGNITION,
                     Manifest.permission.USE_FULL_SCREEN_INTENT,
                     Manifest.permission.WAKE_LOCK};
         }
@@ -312,29 +314,59 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+    /**
+     * Overrode this to send user dialog to get to settings and add notification permissions.
+     * @param requestCode The request code passed in (
+     * android.app.Activity, String[], int)}
+     * @param permissions The requested permissions. Never null.
+     * @param grantResults The grant results for the corresponding permissions
+     *     which is either {@link android.content.pm.PackageManager#PERMISSION_GRANTED}
+     *     or {@link android.content.pm.PackageManager#PERMISSION_DENIED}. Never null.
+     *
+     */
     @Override
-    //TODO Update this for denied permissions
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
                                            int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode) {
-            case PERMISSION_REQUEST_CODE:
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0 &&
-                        grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // Permission is granted. Continue the action or workflow
-                    // in your app.
-                } else {
-                    // Explain to the user that the feature is unavailable because
-                    // the feature requires a permission that the user has denied.
-                    // At the same time, respect the user's decision. Don't link to
-                    // system settings in an effort to convince the user to change
-                    // their decision.
+        boolean onePermissionDenied = false;
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0) {
+                for (int permissionInt: grantResults) {
+                    if(permissionInt != PackageManager.PERMISSION_GRANTED){
+                        onePermissionDenied = true;
+                        break;
+                    }
                 }
-                return;
+                if(onePermissionDenied) {
+                    final AlertDialog dialog = new MaterialAlertDialogBuilder(this, R.style.SettingsDialogRounded)
+                            .setIcon(R.drawable.ic_walk_action_foreground)
+                            .setMessage(R.string.no_notification_permissions)
+                            .setPositiveButton(R.string.go_to_permission_settings,
+                                new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    // if user denies permissions, then send them to settings page
+                                    Intent intent =
+                                            new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                            Uri.fromParts("package", getPackageName(),
+                                                    null));
+                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                    startActivity(intent);
+                                    }
+                                })
+                            .setNegativeButton(R.string.cancel_dialog,
+                                    new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    // empty method to dismiss dialog.
+                                }
+                            })
+                            .create();
+                    dialog.show();
+                }
+            }
         }
-        // Other 'case' lines to check for other
-        // permissions this app might request.
     }
 
     private static boolean checkAllPermissions(Context context, String... permissions) {
