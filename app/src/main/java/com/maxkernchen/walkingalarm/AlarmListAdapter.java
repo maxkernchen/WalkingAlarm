@@ -31,7 +31,7 @@ import java.util.List;
  * Link to alarm_list layout, holds a list of alarmItems and saves/updates
  * them to SharedPreferences.
  *
- * @version 1.23
+ * @version 1.4
  * @author Max Kernchen
  */
 

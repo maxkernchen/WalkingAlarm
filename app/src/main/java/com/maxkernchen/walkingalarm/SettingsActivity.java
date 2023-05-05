@@ -24,7 +24,7 @@ import androidx.preference.PreferenceManager;
  * Dark theme toggle
  * Vibration on alarm toggle
  *
- *  @version 1.23
+ *  @version 1.4
  *  @author Max Kernchen
  */
 public class SettingsActivity extends AppCompatActivity {

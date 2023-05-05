@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
  * Once they are triggered it calls google cloud API for current google fit steps.
  * Requires wake lock when testing with Google Pixel 4a, foreground service does eventually
  * not execute due to doze mode. Wake Lock keeps the service running every polling interval.
- * @version 1.23
+ * @version 1.4
  * @author Max Kernchen
  */
 public class AlarmService extends Service {

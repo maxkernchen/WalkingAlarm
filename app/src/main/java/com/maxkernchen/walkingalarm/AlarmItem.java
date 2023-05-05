@@ -11,7 +11,7 @@ import java.util.Locale;
  * AlarmItem class holds the object representation of each row in the app.
  * List of this class is stored in AlarmListAdapter.
  *
- * @version 1.23
+ * @version 1.4
  * @author Max Kernchen
  */
 

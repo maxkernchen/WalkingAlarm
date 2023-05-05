@@ -28,7 +28,7 @@ import java.util.Calendar;
  * Small Instrumentation Test class, will create an alarm then delete it.
  * Also will test for a duplicate alarm being added.
  *
- * @version 1.23
+ * @version 1.4
  * @author Max Kernchen
  *
  */

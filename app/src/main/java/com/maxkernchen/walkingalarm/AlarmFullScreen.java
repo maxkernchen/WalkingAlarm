@@ -29,7 +29,7 @@ import com.maxkernchen.walkingalarm.databinding.ActivityAlarmFullScreenBinding;
  *
  * The other half contains a broadcast receiver to dismiss or update the full screen UI elements.
  *
- * @version 1.23
+ * @version 1.4
  * @author Max Kernchen
  */
 public class AlarmFullScreen extends AppCompatActivity {

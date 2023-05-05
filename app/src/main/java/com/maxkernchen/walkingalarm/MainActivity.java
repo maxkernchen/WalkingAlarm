@@ -53,7 +53,7 @@ import java.util.Calendar;
  * MainActivity for our app, will init our AlarmListAdapter and listeners for the floating action
  * button. Will also trigger a google sign in first install of the app.
  *
- * @version 1.23
+ * @version 1.4
  * @author Max Kernchen
  */
 public class MainActivity extends AppCompatActivity {
