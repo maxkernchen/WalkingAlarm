@@ -138,14 +138,19 @@ public class AlarmFullScreen extends AppCompatActivity {
 
     }
     /**
-     * onStop is overridden here to unregister the broadcast receiver.
+     * onDestroy is overridden here to unregister the broadcast receiver.
      */
     @Override
-    public void onStop() {
-        super.onStop();
+    public void onDestroy() {
+        super.onDestroy();
         isCreated = false;
         if (alarmFullScreenReceiver != null) {
-            unregisterReceiver(alarmFullScreenReceiver);
+            try {
+                unregisterReceiver(alarmFullScreenReceiver);
+            }
+            catch (IllegalArgumentException ignored){
+                // the receiver is already unregistered
+            }
         }
     }
 

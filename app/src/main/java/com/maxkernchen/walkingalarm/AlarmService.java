@@ -351,7 +351,8 @@ public class AlarmService extends Service {
                             final int stepsInner = dataSet.getDataPoints().get(0).
                                     getValue(Field.FIELD_STEPS).asInt();
                             setCurrentSteps(stepsInner);
-                            Toast.makeText(this, stepsInner, Toast.LENGTH_SHORT).show();
+                            //TODO remove this
+                            Toast.makeText(this, "steps walked " + stepsInner, Toast.LENGTH_SHORT).show();
                         }
                         else{
                             // a specific scenario is that the user has not moved their phone
@@ -368,6 +369,8 @@ public class AlarmService extends Service {
                     .addOnFailureListener(e -> {
                         // do nothing allow for latch to timeout which will print error message
                         // and dismiss alarm
+                        //TODO remove this
+                        e.printStackTrace();
                     });
 
             boolean timedOut = false;
