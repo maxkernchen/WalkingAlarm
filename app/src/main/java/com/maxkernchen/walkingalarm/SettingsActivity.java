@@ -6,12 +6,11 @@ import android.os.Bundle;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.view.MenuItem;
-import android.widget.EditText;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.fragment.app.FragmentActivity;
 import androidx.preference.EditTextPreference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
@@ -111,24 +110,23 @@ public class SettingsActivity extends AppCompatActivity {
             stepsToDismissEditText = findPreference(STEPS_TO_DISMISS_KEY);
             // add filter to limit the length of steps to dismiss to 2 digits.
             // and numbers only.
-            stepsToDismissEditText.setOnBindEditTextListener(new EditTextPreference.
-                    OnBindEditTextListener() {
-                @Override
-                public void onBindEditText(@NonNull EditText editText) {
+            if(stepsToDismissEditText != null) {
+                stepsToDismissEditText.setOnBindEditTextListener(editText -> {
                     editText.setInputType(InputType.TYPE_CLASS_NUMBER);
                     editText.selectAll();
                     editText.setFilters(new InputFilter[]{
                             new InputFilter.LengthFilter(MAX_STEPS_LENGTH)});
-                }
-            });
+                });
+            }
 
             // create our shared preferences listener and assign it to default shared prefs.
             SharedPreferences.OnSharedPreferenceChangeListener listenerSharedPress =
                     createSharedPrefsListener();
-
-            PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext())
-                    .registerOnSharedPreferenceChangeListener(listenerSharedPress);
-
+            FragmentActivity activity = getActivity();
+            if(activity != null) {
+                PreferenceManager.getDefaultSharedPreferences(activity.getApplicationContext())
+                        .registerOnSharedPreferenceChangeListener(listenerSharedPress);
+            }
         }
 
         /**
@@ -141,37 +139,35 @@ public class SettingsActivity extends AppCompatActivity {
         createSharedPrefsListener() {
 
             SharedPreferences.OnSharedPreferenceChangeListener listenerSharedPrefs
-                    = new SharedPreferences.OnSharedPreferenceChangeListener() {
-                @Override
-                public void onSharedPreferenceChanged(
-                        SharedPreferences sharedPreferences, String key) {
+                    = (sharedPreferences, key) -> {
 
-                    if(key.equals(STEPS_TO_DISMISS_KEY)) {
-                        String stringSteps = sharedPreferences.getString(key,
-                                String.valueOf(MINIMUM_STEPS_TO_DISMISS));
-                        int steps = MINIMUM_STEPS_TO_DISMISS;
-                        try {
-                            steps = Integer.parseInt(stringSteps);
-                        } catch (NumberFormatException nfe) {
-                            // set value to 5 in case any invalid options.
-                            stepsToDismissEditText.setText(
+                        if(key.equals(STEPS_TO_DISMISS_KEY)) {
+                            String stringSteps = sharedPreferences.getString(key,
                                     String.valueOf(MINIMUM_STEPS_TO_DISMISS));
+                            int steps = MINIMUM_STEPS_TO_DISMISS;
+                            try {
+                                steps = Integer.parseInt(stringSteps);
+                            } catch (NumberFormatException nfe) {
+                                // set value to 5 in case any invalid options.
+                                stepsToDismissEditText.setText(
+                                        String.valueOf(MINIMUM_STEPS_TO_DISMISS));
+                            }
+                            // force a minimum of 5.
+                            if (steps < 5) {
+                                stepsToDismissEditText.setText(
+                                        String.valueOf(MINIMUM_STEPS_TO_DISMISS));
+                            }
                         }
-                        // force a minimum of 5.
-                        if (steps < 5) {
-                            stepsToDismissEditText.setText(
-                                    String.valueOf(MINIMUM_STEPS_TO_DISMISS));
+                        else if(key.equals(DARK_MODE_KEY)){
+                            boolean isDarkMode = sharedPreferences.getBoolean(key, false);
+                            if(isDarkMode)
+                                AppCompatDelegate.setDefaultNightMode
+                                        (AppCompatDelegate.MODE_NIGHT_YES);
+                            else
+                                AppCompatDelegate.setDefaultNightMode
+                                        (AppCompatDelegate.MODE_NIGHT_NO);
                         }
-                    }
-                    else if(key.equals(DARK_MODE_KEY)){
-                        boolean isDarkMode = sharedPreferences.getBoolean(key, false);
-                        if(isDarkMode)
-                            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
-                        else
-                            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
-                    }
-                }
-            };
+                    };
             return listenerSharedPrefs;
         }
     }
