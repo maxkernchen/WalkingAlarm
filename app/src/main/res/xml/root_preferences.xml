@@ -7,9 +7,14 @@
             app:key="number_of_steps_setting_key"
             app:title="@string/steps_to_dismiss_pref_title"
             app:useSimpleSummaryProvider="true"
-
             />
 
+        <EditTextPreference
+            app:defaultValue="15"
+            app:key="max_secs_to_wait_key"
+            app:title="@string/max_secs_to_wait_setting_title"
+            app:useSimpleSummaryProvider="true"
+            />
 
         <SwitchPreference
             app:defaultValue="false"

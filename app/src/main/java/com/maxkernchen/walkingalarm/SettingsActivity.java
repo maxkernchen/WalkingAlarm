@@ -17,11 +17,12 @@ import androidx.preference.PreferenceManager;
 
 
 /**
- * SettingsActivity which holds all our settings, right now there are 3:
+ * SettingsActivity which holds all our settings, right now there are 4:
  *
  * Number of steps required to dismiss alarm
  * Dark theme toggle
  * Vibration on alarm toggle
+ * Maximum time in seconds to wait for one step before dismissing the alarm.
  *
  *  @version 1.4
  *  @author Max Kernchen
@@ -76,6 +77,9 @@ public class SettingsActivity extends AppCompatActivity {
      * Listener to validate any setting changes or apply them on the fly (dark mode).
      */
     public static class SettingsFragment extends PreferenceFragmentCompat {
+
+        SharedPreferences.OnSharedPreferenceChangeListener listenerSharedPress =
+                createSharedPrefsListener();
         /**
          * Key for the steps to dismiss setting
          */
@@ -88,15 +92,32 @@ public class SettingsActivity extends AppCompatActivity {
          * Key for the Vibration setting
          */
         public final static String VIBRATE_KEY = "vibration_setting_key";
+
+        /**
+         * Key for the max seconds to wait setting
+         */
+        public final static String MAX_SECS_TO_WAIT_KEY = "max_secs_to_wait_key";
         // steps to dismiss edit text is stored here for usage on the create listeners and
         // onCreatePreferences
         private EditTextPreference stepsToDismissEditText;
+        // seconds to wait edit text is stored here for usage on the create listeners and
+        // onCreatePreferences
+        private EditTextPreference secondsToWaitForStepEditText;
         // static int which represents the maximum length of the steps to dismiss input field
         // (2 digits)
         private static final int MAX_STEPS_LENGTH = 2;
+        // static int which represents the maximum length of the seconds to dismiss setting
+        // (3 digits)
+        private static final int MAX_SECS_LENGTH = 3;
         // static public int which defines the min amount of steps the steps to dismiss setting
         // should be set to.
         public final static int MINIMUM_STEPS_TO_DISMISS = 5;
+        // static public int which defines the maximum amount of time we will wait for at least one
+        // step to be walked. This is used to help with delays from Google Fit
+        // updating the current steps walked
+        public final static int MIN_MAX_SECS_TO_WAIT_FOR_STEPS = 15;
+        // The max value of the seconds to wait for steps setting is 120 seconds (2 minutes).
+        public final static int MAX_MAX_SECS_TO_WAIT_FOR_STEPS = 120;
 
         /**
          * Overridden method onCreatePreferences, in this we find the UI elements required
@@ -108,6 +129,7 @@ public class SettingsActivity extends AppCompatActivity {
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
             setPreferencesFromResource(R.xml.root_preferences, rootKey);
             stepsToDismissEditText = findPreference(STEPS_TO_DISMISS_KEY);
+            secondsToWaitForStepEditText = findPreference(MAX_SECS_TO_WAIT_KEY);
             // add filter to limit the length of steps to dismiss to 2 digits.
             // and numbers only.
             if(stepsToDismissEditText != null) {
@@ -118,15 +140,33 @@ public class SettingsActivity extends AppCompatActivity {
                             new InputFilter.LengthFilter(MAX_STEPS_LENGTH)});
                 });
             }
+            if(secondsToWaitForStepEditText != null){
+                secondsToWaitForStepEditText.setOnBindEditTextListener(editText -> {
+                    editText.setInputType(InputType.TYPE_CLASS_NUMBER);
+                    editText.selectAll();
+                    editText.setFilters(new InputFilter[]{
+                            new InputFilter.LengthFilter(MAX_SECS_LENGTH)});
+                });
+            }
 
             // create our shared preferences listener and assign it to default shared prefs.
-            SharedPreferences.OnSharedPreferenceChangeListener listenerSharedPress =
-                    createSharedPrefsListener();
+
             FragmentActivity activity = getActivity();
             if(activity != null) {
-                PreferenceManager.getDefaultSharedPreferences(activity.getApplicationContext())
+                PreferenceManager.getDefaultSharedPreferences(activity.getBaseContext())
                         .registerOnSharedPreferenceChangeListener(listenerSharedPress);
             }
+        }
+
+        @Override
+        public void onDestroy() {
+            super.onDestroy();
+            FragmentActivity activity = getActivity();
+            if(activity != null) {
+                PreferenceManager.getDefaultSharedPreferences(activity.getBaseContext())
+                        .unregisterOnSharedPreferenceChangeListener(listenerSharedPress);
+            }
+
         }
 
         /**
@@ -166,6 +206,28 @@ public class SettingsActivity extends AppCompatActivity {
                             else
                                 AppCompatDelegate.setDefaultNightMode
                                         (AppCompatDelegate.MODE_NIGHT_NO);
+                        }
+                        else if(key.equals(MAX_SECS_TO_WAIT_KEY)){
+                            String stringSteps = sharedPreferences.getString(key,
+                                    String.valueOf(MIN_MAX_SECS_TO_WAIT_FOR_STEPS));
+                            int secsToWaitForSteps = MIN_MAX_SECS_TO_WAIT_FOR_STEPS;
+                            try {
+                                secsToWaitForSteps = Integer.parseInt(stringSteps);
+                            } catch (NumberFormatException nfe) {
+                                // set value to 15 in case any invalid options.
+                                secondsToWaitForStepEditText.setText(
+                                        String.valueOf(MIN_MAX_SECS_TO_WAIT_FOR_STEPS));
+                            }
+                            // force a minimum of 15 or max of 120 seconds
+                            if (secsToWaitForSteps < 15) {
+                                secondsToWaitForStepEditText.setText(
+                                        String.valueOf(MIN_MAX_SECS_TO_WAIT_FOR_STEPS));
+                            }
+                            else if(secsToWaitForSteps > 120){
+                                secondsToWaitForStepEditText.setText(
+                                        String.valueOf(MAX_MAX_SECS_TO_WAIT_FOR_STEPS));
+                            }
+
                         }
                     };
             return listenerSharedPrefs;

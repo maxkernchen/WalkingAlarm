@@ -56,8 +56,6 @@ public class AlarmService extends Service {
     // Calendar used to check if we find some steps but not all to dismiss.
     // This is used to eventually dismiss the alarm so it does not hang forever.
     private Calendar alarmTimeOutMonitor;
-    // seconds to wait before dismissing alarm due to no steps found.
-    private static final int SECONDS_TO_WAIT_FOR_STEPS = 45;
     // how often we check if a new alarm needs to be triggered in milliseconds
     private static final int POLLING_FREQUENCY_MS = 3000;
     // how long to wait in ms for GOOGLE FIT API call to complete
@@ -437,9 +435,10 @@ public class AlarmService extends Service {
         if(notificationTriggered){
             alarmStartMonitor = Calendar.getInstance();
             alarmTimeOutMonitor = Calendar.getInstance();
-            alarmStartMonitor.add(Calendar.SECOND, SECONDS_TO_WAIT_FOR_STEPS);
+            int maxSecondsToWait = getMaxSecondsToWaitForOneStep();
+            alarmStartMonitor.add(Calendar.SECOND, maxSecondsToWait);
             // wait double to amount of time to dismiss if we find some steps but not all
-            alarmTimeOutMonitor.add(Calendar.SECOND, SECONDS_TO_WAIT_FOR_STEPS * 2);
+            alarmTimeOutMonitor.add(Calendar.SECOND, maxSecondsToWait * 2);
             notificationTriggered = false;
             foundNotification = true;
         }
@@ -498,6 +497,24 @@ public class AlarmService extends Service {
     }
 
     /**
+     * Helper method that gets maximum number of seconds to wait for one step before
+     * dismissing alarm
+     * @return int seconds to wait before dismissing alarm
+     */
+    private int getMaxSecondsToWaitForOneStep(){
+        int secondsToWait = SettingsActivity.SettingsFragment.MIN_MAX_SECS_TO_WAIT_FOR_STEPS;
+        String secondsString = settingsPref.
+                getString(SettingsActivity.SettingsFragment.MAX_SECS_TO_WAIT_KEY, "15");
+        try{
+            secondsToWait = Integer.parseInt(secondsString);
+        }
+        catch(NumberFormatException nfe){
+            // do nothing here as value is set to default of 5.
+        }
+        return secondsToWait;
+    }
+
+    /**
      * Helper method which sleeps main thread, used in main loop for service
      * @param milliseconds how long to sleep
      */
@@ -526,7 +543,7 @@ public class AlarmService extends Service {
             pendingFlag = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
         }
         else {
-            pendingFlag =  PendingIntent.FLAG_UPDATE_CURRENT;
+            pendingFlag = PendingIntent.FLAG_UPDATE_CURRENT;
         }
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
                 pendingFlag);

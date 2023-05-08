@@ -50,6 +50,7 @@
     <string name="steps_to_dismiss_pref_title">Number of Steps to Dismiss Alarm (minimum 5 steps)</string>
     <string name="dark_mode_pref_title">Enable Dark Theme</string>
     <string name="vibration_setting_title">Vibrate on Alarm</string>
+    <string name="max_secs_to_wait_setting_title">Seconds to Wait for at Least One Step (minimum 15 seconds)</string>
 
 
 
