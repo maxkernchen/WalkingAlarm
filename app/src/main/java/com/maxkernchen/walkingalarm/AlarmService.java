@@ -67,7 +67,7 @@ public class AlarmService extends Service {
     // Action which will display toast message from AlarmReceiver.
     public final static String TOAST_MESSAGE_FROM_SERVICE_ACTION = "ToastMessageServiceAction";
     // Constant string which is for the required notification that a service is running.
-    public final static String WALKING_ALARM_RUNNING = "Walking Alarm is Running in Background";
+    public final static String WALKING_ALARM_RUNNING = "Walking Alarm is Running in the Background";
     // log tag for logging.
     private static final String logTag = "AlarmService";
     // current name of the alarm.
@@ -349,8 +349,6 @@ public class AlarmService extends Service {
                             final int stepsInner = dataSet.getDataPoints().get(0).
                                     getValue(Field.FIELD_STEPS).asInt();
                             setCurrentSteps(stepsInner);
-                            //TODO remove this
-                            Toast.makeText(this, "steps walked " + stepsInner, Toast.LENGTH_SHORT).show();
                         }
                         else{
                             // a specific scenario is that the user has not moved their phone
@@ -367,8 +365,6 @@ public class AlarmService extends Service {
                     .addOnFailureListener(e -> {
                         // do nothing allow for latch to timeout which will print error message
                         // and dismiss alarm
-                        //TODO remove this
-                        e.printStackTrace();
                     });
 
             boolean timedOut = false;
