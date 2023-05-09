@@ -38,7 +38,7 @@
     <string name="duplicate_alarm_time_error">Error: Alarm already exists at this time </string>
     <string name="no_steps_found_after_time">Error: Could not find change in steps,
         dismissing Alarm</string>
-    <string name="alarm_not_dismissed_in_time">Error: Steps not walked within 1 minute,
+    <string name="alarm_not_dismissed_in_time">Error: Steps not walked within allotted time,
         dismissing alarm</string>
     <string name="no_notification_permissions">Error: Walking Alarm requires Notification
         permissions and Activity Tracking to function</string>
