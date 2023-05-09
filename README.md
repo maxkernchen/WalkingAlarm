@@ -35,7 +35,7 @@ Features Include:
   
   
 
-![screenshot 1 Walking Alarm](https://i.imgur.com/AOet0k5.jpg)  ![screenshot 2 Walking Alarm](https://i.imgur.com/41sKjyU.jpg)  
+![screenshot 1 Walking Alarm](https://i.imgur.com/AOet0k5.jpg)  ![screenshot 2 Walking Alarm](https://i.imgur.com/v7GJUCe.png)  
 
   
 
