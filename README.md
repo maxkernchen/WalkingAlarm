@@ -30,8 +30,9 @@ Features Include:
 
 * Ability to Set Steps Required to Dismiss 
 
-  
+* Ability to Define How Long to Wait for Google Fit to Update Steps. Useful for when Google Fit may be slow to update current walked steps.
 
+  
   
 
 ![screenshot 1 Walking Alarm](https://i.imgur.com/AOet0k5.jpg)  ![screenshot 2 Walking Alarm](https://i.imgur.com/rOZQlMm.jpg)  
