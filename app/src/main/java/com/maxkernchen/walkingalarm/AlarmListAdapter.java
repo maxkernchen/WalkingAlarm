@@ -1,7 +1,5 @@
 package com.maxkernchen.walkingalarm;
 
-import android.app.Activity;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -15,14 +13,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.maxkernchen.walkingalarm.R;
 import com.google.android.material.button.MaterialButton;
 import com.google.gson.Gson;
 import java.time.DayOfWeek;
@@ -37,7 +31,7 @@ import java.util.List;
  * Link to alarm_list layout, holds a list of alarmItems and saves/updates
  * them to SharedPreferences.
  *
- * @version 1.23
+ * @version 1.4
  * @author Max Kernchen
  */
 
@@ -48,8 +42,6 @@ public class AlarmListAdapter extends
     private List<AlarmItem> alarmItems;
     //SharedPreferences for storing alarm items using GSON.
     private SharedPreferences prefs;
-    // static string for the index of the alarm item we are updating.
-    public static final String INTENT_EXTRA_INDEX_ITEM = "ExtraAlarmItemIndex";
 
     /**
      * Constructor for AlarmListAdapter will set the shared prefs and get current items stored.
@@ -62,7 +54,7 @@ public class AlarmListAdapter extends
 
     /**
      * onCreateViewHolder Overridden method, will assign layout as R.layout.alarm_list
-     * and bind alarmitems to AlarmViewHolder inner class.
+     * and bind alarmItems to AlarmViewHolder inner class.
      * @param parent parent view group
      * @param viewType viewType int.
      * @return
@@ -211,7 +203,7 @@ public class AlarmListAdapter extends
         prefsEditor.apply();
         alarmItems.remove(index);
         notifyItemRemoved(index);
-        //resave to align items.
+        //re-save to align items.
         saveAlarmItems();
 
     }
@@ -228,7 +220,7 @@ public class AlarmListAdapter extends
         // get current time and day of week.
         Calendar now = Calendar.getInstance();
         LocalDate nowDate = LocalDate.now();
-        boolean alarmTime = false;
+        boolean alarmTime;
 
         for(AlarmItem item : staticItems){
             Calendar tempCal = item.getAlarmDate();
@@ -275,18 +267,18 @@ public class AlarmListAdapter extends
 
             super(itemView);
             this.itemView = itemView;
-            alarmNameTextView = (TextView) itemView.findViewById(R.id.alarm_name);
-            alarmActiveSwitch = (SwitchCompat) itemView.findViewById(R.id.alarm_active_switch);
-            subItem = (LinearLayout) itemView.findViewById(R.id.sub_alarm_info);
+            alarmNameTextView =  itemView.findViewById(R.id.alarm_name);
+            alarmActiveSwitch = itemView.findViewById(R.id.alarm_active_switch);
+            subItem = itemView.findViewById(R.id.sub_alarm_info);
             toggleButtons = this.getToggleDayOfWeeks(itemView);
-            alarmSoundPicker = (Button) itemView.findViewById(R.id.alarm_select_sound);
+            alarmSoundPicker = itemView.findViewById(R.id.alarm_select_sound);
             this.setUpListeners(this);
 
         }
 
         /**
-         * bind an alarm item, so the object representation matches what the UI shows.
-         * @param alarmItem
+         * Bind an alarm item, so the object representation matches what the UI shows.
+         * @param alarmItem the current alarm row we are binding.
          */
         private void bind(AlarmItem alarmItem){
             alarmNameTextView.setText(alarmItem.getAlarmName());
@@ -300,20 +292,20 @@ public class AlarmListAdapter extends
 
         /**
          * Helper method to get list of all toggle buttons used for day of week toggle.
-         * @param itemview view we use to find the needed UI elements
+         * @param itemView view we use to find the needed UI elements
          * @return list of toggle buttons.
          */
-        private ArrayList<ToggleButton> getToggleDayOfWeeks(View itemview){
+        private ArrayList<ToggleButton> getToggleDayOfWeeks(View itemView){
             ArrayList<ToggleButton> toggleButtons = new ArrayList<>();
             // these are added in same order as java 1.8 DayOfWeek enum starting Monday
             // so we can just directly get the correct toggle.
-            toggleButtons.add(itemview.findViewById(R.id.monday_toggle));
-            toggleButtons.add(itemview.findViewById(R.id.tuesday_toggle));
-            toggleButtons.add(itemview.findViewById(R.id.wednesday_toggle));
-            toggleButtons.add(itemview.findViewById(R.id.thursday_toggle));
-            toggleButtons.add(itemview.findViewById(R.id.friday_toggle));
-            toggleButtons.add(itemview.findViewById(R.id.saturday_toggle));
-            toggleButtons.add(itemview.findViewById(R.id.sunday_toggle));
+            toggleButtons.add(itemView.findViewById(R.id.monday_toggle));
+            toggleButtons.add(itemView.findViewById(R.id.tuesday_toggle));
+            toggleButtons.add(itemView.findViewById(R.id.wednesday_toggle));
+            toggleButtons.add(itemView.findViewById(R.id.thursday_toggle));
+            toggleButtons.add(itemView.findViewById(R.id.friday_toggle));
+            toggleButtons.add(itemView.findViewById(R.id.saturday_toggle));
+            toggleButtons.add(itemView.findViewById(R.id.sunday_toggle));
 
             return toggleButtons;
         }
@@ -336,21 +328,21 @@ public class AlarmListAdapter extends
         private void setUpListeners(AlarmViewHolder alarmViewHolder){
 
             // assign listeners to buttons.
-            MaterialButton btn = (MaterialButton) alarmViewHolder.
+            MaterialButton btn = alarmViewHolder.
                     itemView.findViewById(R.id.alarm_delete_button);
             btn.setOnClickListener(l -> {
-                deleteAlarmItem(alarmViewHolder.getAdapterPosition());
+                deleteAlarmItem(alarmViewHolder.getBindingAdapterPosition());
             });
             // set expanded listener
             alarmViewHolder.itemView.setOnClickListener(l -> {
-                int position = alarmViewHolder.getAdapterPosition();
+                int position = alarmViewHolder.getBindingAdapterPosition();
                 AlarmItem alarmItem = alarmItems.get(position);
                 alarmItem.setExpanded(!alarmItem.isExpanded());
                 notifyItemChanged(position);
             });
             // set active switch
             alarmViewHolder.alarmActiveSwitch.setOnClickListener(l -> {
-                int position = alarmViewHolder.getAdapterPosition();
+                int position = alarmViewHolder.getBindingAdapterPosition();
                 AlarmItem alarmItem = alarmItems.get(position);
                 alarmItem.setActive(!alarmItem.isActive());
                 notifyItemChanged(position);
@@ -361,7 +353,7 @@ public class AlarmListAdapter extends
             for (ToggleButton toggleButton : toggleButtons){
                 final int finalIndex = i;
                 toggleButton.setOnClickListener(l -> {
-                    int position = alarmViewHolder.getAdapterPosition();
+                    int position = alarmViewHolder.getBindingAdapterPosition();
                     AlarmItem alarmItem = alarmItems.get(position);
                     if(toggleButton.isChecked()){
                         alarmItem.addDayOfWeek(DayOfWeek.of(finalIndex));
@@ -377,19 +369,14 @@ public class AlarmListAdapter extends
             // As we have to trigger this intent from the Main Activity, we send a broadcast
             // to MainActivity's broadcast receivers.
             alarmSoundPicker.setOnClickListener(l -> {
-
-                MainActivity.currentItemIndexSoundPick = alarmViewHolder.getAdapterPosition();
+                MainActivity.currentItemIndexSoundPick = alarmViewHolder.getBindingAdapterPosition();
 
                 Intent alarmSoundIntent = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
                 alarmSoundIntent.putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI,
                         RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM));
 
                 MainActivity.alarmPickerResultLauncher.launch(alarmSoundIntent);
-
-
             });
         }
-
-
     }
 }

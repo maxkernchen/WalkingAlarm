@@ -1,19 +1,21 @@
 package com.maxkernchen.walkingalarm;
 
+import static com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes.SIGN_IN_FAILED;
+
 import android.app.Activity;
 import android.app.TimePickerDialog;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
+
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.Manifest;
 
-import com.maxkernchen.walkingalarm.R;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.common.api.ApiException;
@@ -21,26 +23,29 @@ import com.google.android.gms.fitness.FitnessOptions;
 import com.google.android.gms.fitness.data.DataType;
 import com.google.android.gms.tasks.Task;
 
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
+
+
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.provider.Settings;
 import android.text.format.DateFormat;
-import android.view.View;
 
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.maxkernchen.walkingalarm.databinding.ActivityMainBinding;
 
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.TimePicker;
 import android.widget.Toast;
 
 import java.util.Calendar;
@@ -49,10 +54,12 @@ import java.util.Calendar;
  * MainActivity for our app, will init our AlarmListAdapter and listeners for the floating action
  * button. Will also trigger a google sign in first install of the app.
  *
- * @version 1.23
+ * @version 1.4
  * @author Max Kernchen
  */
 public class MainActivity extends AppCompatActivity {
+
+    private static final int PERMISSION_REQUEST_CODE = 2;
     /**
      * Singleton AlarmListAdapter which can be called from other classes, and
      * is central location for storing our list of Alarms.
@@ -86,6 +93,42 @@ public class MainActivity extends AppCompatActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // get permissions based on SDK version
+        String[] permissionsStr;
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionsStr = new String[]{Manifest.permission.FOREGROUND_SERVICE,
+                    //33
+                    Manifest.permission.POST_NOTIFICATIONS,
+                    Manifest.permission.DISABLE_KEYGUARD,
+                    Manifest.permission.RECEIVE_BOOT_COMPLETED,
+                    Manifest.permission.DISABLE_KEYGUARD,
+                    Manifest.permission.ACTIVITY_RECOGNITION,
+                    Manifest.permission.USE_FULL_SCREEN_INTENT,
+                    Manifest.permission.WAKE_LOCK};
+        }
+        else if(Build.VERSION.SDK_INT > Build.VERSION_CODES.P){
+            permissionsStr = new String[]{Manifest.permission.FOREGROUND_SERVICE,
+                    Manifest.permission.DISABLE_KEYGUARD,
+                    Manifest.permission.RECEIVE_BOOT_COMPLETED,
+                    Manifest.permission.DISABLE_KEYGUARD,
+                    Manifest.permission.ACTIVITY_RECOGNITION,
+                    Manifest.permission.USE_FULL_SCREEN_INTENT,
+                    Manifest.permission.WAKE_LOCK};
+        }
+        else{
+            permissionsStr = new String[]{Manifest.permission.FOREGROUND_SERVICE,
+                    Manifest.permission.DISABLE_KEYGUARD,
+                    Manifest.permission.RECEIVE_BOOT_COMPLETED,
+                    Manifest.permission.DISABLE_KEYGUARD,
+                    Manifest.permission.WAKE_LOCK};
+        }
+
+
+       if (!checkAllPermissions(this,permissionsStr)) {
+            requestPermissions(permissionsStr,
+                    PERMISSION_REQUEST_CODE);
+        }
+
         ActivityMainBinding binding =
                 ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -96,7 +139,10 @@ public class MainActivity extends AppCompatActivity {
 
         RecyclerView rvAlarmListView = (RecyclerView) findViewById(R.id.alarmListView);
         // disable animations on changes, else it will flash toggle buttons for every update.
-        rvAlarmListView.getItemAnimator().setChangeDuration(0);
+        RecyclerView.ItemAnimator itemAnimator = rvAlarmListView.getItemAnimator();
+        if(itemAnimator != null){
+            itemAnimator.setChangeDuration(0);
+        }
 
         AlarmListAdapter alarmListAdapter = new AlarmListAdapter(
                 prefs);
@@ -106,38 +152,31 @@ public class MainActivity extends AppCompatActivity {
 
         is24HourTime = DateFormat.is24HourFormat(this);
         // add listener to floating action button which will pop up a TimePickerDialog.
-        binding.fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                final Calendar cldr = Calendar.getInstance();
-                int hour = is24HourTime ? cldr.get(Calendar.HOUR_OF_DAY) : cldr.get(Calendar.HOUR);
-                int minutes = cldr.get(Calendar.MINUTE);
+        binding.fab.setOnClickListener(view -> {
+            final Calendar cldr = Calendar.getInstance();
+            int hour = is24HourTime ? cldr.get(Calendar.HOUR_OF_DAY) : cldr.get(Calendar.HOUR);
+            int minutes = cldr.get(Calendar.MINUTE) + 1;
 
-                final TimePickerDialog picker = new TimePickerDialog(MainActivity.this,
-                        new TimePickerDialog.OnTimeSetListener() {
-                            @Override
-                            public void onTimeSet(TimePicker tp, int sHour, int sMinute) {
-                                boolean addSucceeded = alarmListAdapter.addAlarmItem(
-                                        new AlarmItem(sHour, sMinute));
-                                if(!addSucceeded){
-                                    Toast.makeText(MainActivity.this,
-                                            R.string.duplicate_alarm_time_error,
-                                            Toast.LENGTH_LONG).show();
-                                }
+            final TimePickerDialog picker = new TimePickerDialog(MainActivity.this,
+                    (tp, sHour, sMinute) -> {
+                        boolean addSucceeded = alarmListAdapter.addAlarmItem(
+                                new AlarmItem(sHour, sMinute));
+                        if(!addSucceeded){
+                            Toast.makeText(MainActivity.this,
+                                    R.string.duplicate_alarm_time_error,
+                                    Toast.LENGTH_LONG).show();
+                        }
 
-                            }
-                        }, hour, minutes, is24HourTime);
-                picker.setCanceledOnTouchOutside(false);
-                picker.show();
-            }
+                    }, hour, minutes, is24HourTime);
+            picker.setCanceledOnTouchOutside(false);
+            picker.show();
         });
         // handle response from sound picker intent.
         alarmPickerResultLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
-                new ActivityResultCallback<ActivityResult>() {
-                    @Override
-                    public void onActivityResult(ActivityResult result) {
-                        if (result.getResultCode() == Activity.RESULT_OK) {
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK) {
+                        if(result.getData() != null) {
                             final Uri uri = result.getData().getParcelableExtra
                                     (RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
                             updateAlarmSoundForCurrentItem(uri);
@@ -151,11 +190,7 @@ public class MainActivity extends AppCompatActivity {
         this.setThemeOnStart();
         if(!AlarmService.isRunning) {
             Intent myService = new Intent(this, AlarmService.class);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(myService);
-            } else {
-                startService(myService);
-            }
+            startForegroundService(myService);
         }
         googleSignIn();
     }
@@ -225,6 +260,7 @@ public class MainActivity extends AppCompatActivity {
         final FitnessOptions fitnessOptions = FitnessOptions.builder()
                 .addDataType(DataType.TYPE_STEP_COUNT_CUMULATIVE, FitnessOptions.ACCESS_READ)
                 .addDataType(DataType.TYPE_STEP_COUNT_DELTA, FitnessOptions.ACCESS_READ)
+                .addDataType(DataType.AGGREGATE_STEP_COUNT_DELTA, FitnessOptions.ACCESS_READ)
                 .build();
 
         GoogleSignInAccount account = GoogleSignIn.getAccountForExtension(this,
@@ -263,15 +299,82 @@ public class MainActivity extends AppCompatActivity {
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if(requestCode == GOOGLE_SIGN_IN_REQUEST_CODE){
+        if (requestCode == GOOGLE_SIGN_IN_REQUEST_CODE) {
             Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
             try {
                 GoogleSignInAccount account = task.getResult(ApiException.class);
             } catch (ApiException e) {
-                Toast.makeText(this, R.string.could_not_find_account_error,
-                        Toast.LENGTH_SHORT).show();
+                if (e.getStatusCode() == SIGN_IN_FAILED) {
+                    Toast.makeText(this, R.string.could_not_find_account_error,
+                            Toast.LENGTH_SHORT).show();
+                }
             }
         }
     }
 
+    /**
+     * Overrode this to send user dialog to get to settings and add notification permissions.
+     * @param requestCode The request code passed in (
+     * android.app.Activity, String[], int)}
+     * @param permissions he requested permissions. Never null.
+     * @param grantResults The grant results for the corresponding permissions
+     *     which is either {@link android.content.pm.PackageManager#PERMISSION_GRANTED}
+     *     or {@link android.content.pm.PackageManager#PERMISSION_DENIED}. Never null.
+     *
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        boolean onePermissionDenied = false;
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0) {
+                for (int permissionInt: grantResults) {
+                    if(permissionInt != PackageManager.PERMISSION_GRANTED){
+                        onePermissionDenied = true;
+                        break;
+                    }
+                }
+                if(onePermissionDenied) {
+                    final AlertDialog dialog = new MaterialAlertDialogBuilder(this,
+                            R.style.SettingsDialogRounded)
+                            .setIcon(R.drawable.ic_walk_action_foreground)
+                            .setMessage(R.string.no_notification_permissions)
+                            .setPositiveButton(R.string.go_to_permission_settings,
+                                    (dialogInterface, i) -> {
+                                        // if user denies permissions, then send them to settings page
+                                        Intent intent =
+                                                new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                                Uri.fromParts("package", getPackageName(),
+                                                        null));
+                                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                        startActivity(intent);
+                                        })
+                            .setNegativeButton(R.string.cancel_dialog,
+                                    (dialogInterface, i) -> {
+                                        // empty method to dismiss dialog.
+                                    })
+                            .create();
+                    dialog.show();
+                }
+            }
+        }
+    }
+
+    /**
+     * Helper method which checks all permissions if they exist.
+     * @param context - the current context for this activity
+     * @param permissions - list of String permissions to check for
+     * @return returns true is all permissions are already allowed, else false.
+     */
+    private static boolean checkAllPermissions(Context context, String... permissions) {
+            for (String permission : permissions) {
+                if (ContextCompat.checkSelfPermission(context, permission) !=
+                        PackageManager.PERMISSION_GRANTED) {
+                    return false;
+                }
+            }
+        return true;
+    }
 }
+

@@ -28,6 +28,8 @@
     <string name="title_activity_alarm_full_screen">Alarm Dismiss Screen</string>
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="go_to_permission_settings">Go to Settings</string>
+    <string name="cancel_dialog">Cancel</string>
     <!-- Error Messages -->
     <string name="could_not_find_account_error">Error: Could not find Google Fit Account,
         please restart app</string>
@@ -38,6 +40,8 @@
         dismissing Alarm</string>
     <string name="alarm_not_dismissed_in_time">Error: Steps not walked within 1 minute,
         dismissing alarm</string>
+    <string name="no_notification_permissions">Error: Walking Alarm requires Notification
+        permissions and Activity Tracking to function</string>
 
     <!-- Preference Titles -->
     <string name="settings_header">General</string>
@@ -46,6 +50,7 @@
     <string name="steps_to_dismiss_pref_title">Number of Steps to Dismiss Alarm (minimum 5 steps)</string>
     <string name="dark_mode_pref_title">Enable Dark Theme</string>
     <string name="vibration_setting_title">Vibrate on Alarm</string>
+    <string name="max_secs_to_wait_setting_title">Seconds to Wait for at Least One Step (minimum 15 seconds)</string>
 
 
 
